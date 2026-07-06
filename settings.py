@@ -248,6 +248,11 @@ DATA_UPLOAD_MAX_NUMBER_FIELDS = 5120
 # type of implicitly generated primary key
 DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
 
+# Transitional setting: assume https:// for URLs entered without a
+# scheme, which becomes the default in Django 6.0. Remove once we are
+# on Django 6.0.
+FORMS_URLFIELD_ASSUME_HTTPS = True
+
 #################################################################################
 # 3rd-party app settings
 #################################################################################
