@@ -50,7 +50,7 @@ class DateForm(ModelForm):
         if len(year.strip('?')) > 0:
             try:
                 int(year.strip('?'))
-            except:
+            except ValueError:
                 raise verror
 
         if len(dparts) > 1:
@@ -62,7 +62,7 @@ class DateForm(ModelForm):
             if len(month) > 0:
                 try:
                     int(month)
-                except:
+                except ValueError:
                     raise verror
                 if not (1 <= int(month) <=12):
                     raise ValidationError(_('Month is not between 1 and 12.'))
@@ -75,7 +75,7 @@ class DateForm(ModelForm):
             if len(day) > 0:
                 try:
                     int(day)
-                except:
+                except ValueError:
                     raise verror
                 if not (1 <= int(day) <=31):
                     raise ValidationError(_('Day is not between 1 and 31.'))
