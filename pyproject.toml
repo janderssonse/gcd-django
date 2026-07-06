@@ -3,3 +3,28 @@
 DJANGO_SETTINGS_MODULE = "settings"
 # Where the tests live, so a bare `pytest` finds them.
 testpaths = ["apps"]
+
+[tool.ruff]
+line-length = 88
+extend-exclude = [
+    "*/migrations/*",
+    "apps/inducks",
+    "apps/legacy/tools",
+]
+
+[tool.ruff.lint]
+# Start from ruff's defaults (pyflakes + a pycodestyle subset) and tighten
+# over time.
+select = ["E4", "E7", "E9", "F", "W"]
+# Baseline of pre-existing findings, to be ratcheted down. F401 needs a
+# manual pass since imports can register signals or template tags.
+ignore = ["F401", "E711", "E722", "E731", "E741", "F841"]
+
+[tool.ruff.lint.per-file-ignores]
+# Package modules re-exporting for their app's public interface.
+"**/__init__.py" = ["F401"]
+# settings_local overrides via star import by design.
+"settings.py" = ["F403", "F405"]
+"apps/voting/admin.py" = ["F403", "F405"]
+# Pre-existing undefined name, needs a look.
+"scripts/name_value.py" = ["F821"]

@@ -59,6 +59,9 @@ test *ARGS: db
 test-fresh *ARGS: db
     {{web}} pytest --create-db {{ARGS}}
 
+# Lint with ruff
+lint:
+    {{dc}} run --rm --no-deps -w /code/gcd-django web python -m ruff check .
 
 # Open a Django shell
 shell:

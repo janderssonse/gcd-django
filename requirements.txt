@@ -48,7 +48,9 @@ djangorestframework
 drf-yaml
 
 # These packages are used in development and testing.
-flake8==6.1.0
+# ruff is the linter/formatter (configured in pyproject.toml); it replaces
+# flake8 and friends in one fast tool.
+ruff==0.8.4
 mock
 pytest
 pytest-django
