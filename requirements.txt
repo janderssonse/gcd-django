@@ -22,8 +22,11 @@ django-recaptcha<4.2
 django-rosetta
 django-tables2<2.9
 django-model-utils<5.1
-git+https://github.com/GrandComicsDatabase/django-taggit.git@django52
-git+https://github.com/GrandComicsDatabase/django-templatesadmin.git@django-42
+# The taggit fork is required: it keeps keywords case-sensitive, which
+# stock django-taggit merges ('Bar' and 'bar' become one tag).
+# Pin forks to commits, not branches, for reproducible installs.
+git+https://github.com/GrandComicsDatabase/django-taggit.git@41eb16c9fa62e23734bce392feff1f89b732fbfc
+git+https://github.com/GrandComicsDatabase/django-templatesadmin.git@990b060a188f29a1e0aa97713628511c1d8e5dc0
 drf-spectacular<0.30
 chardet<5.3
 elasticsearch>7.0,<8.0
@@ -66,4 +69,4 @@ django-extensions<4.2
 redis<5.1
 rq<2.7
 django-rq<3.3
-git+https://github.com/GrandComicsDatabase/haystack-rqueue.git
+git+https://github.com/GrandComicsDatabase/haystack-rqueue.git@774d3fda8606f61676acd7f5bccf9e9b26febb1f
