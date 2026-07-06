@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+
+
+<html>
+<head>
+
+  <title>
+  GCD :: Series :: Characterization Series
+</title>
+  <link rel="shortcut icon" href="/static/img/favicon.ico">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8">
+  
+    
+  <link rel="stylesheet" type="text/css"
+        href="/static/css/output.css"/>
+    
+  
+  
+
+</head>
+
+<body>
+<div >
+
+
+
+
+
+
+
+  
+  
+  
+<nav class="flex items-center justify-between flex-wrap  bg-gcd  px-2 sm:px-4">
+  <div class="flex-1 ">
+    <div class="w-[68px]  hover:bg-blue-700  p-1">
+      <a href="/"><img class="w-[60px]" src="/static/img/gcd_logo.png" alt="GCD"></a>
+    </div>
+  </div>
+  <!-- <div class="w-full flex-grow lg:flex lg:items-center lg:w-auto "> -->
+  <div><!-- Search Box -->
+    <form action="/search/" method="get">
+      <div class="flex rounded-md overflow-hidden mx-auto">
+        <span class="max-sm:hidden flex">
+  
+
+<select class="px-1  bg-blue-100 " name="search_type" size="1">
+  
+    <option value="series"> Series Name </option>
+    <option value="series_and_issue"> Series Name &amp; Issue # </option>
+    <option value="creator"> Creator Name </option>
+    <option style="font-size: 1pt; background-color: #000000;" disabled>&nbsp;</option>
+    <option value="writer"> Writer </option>
+    <option value="penciller"> Penciller </option>
+    <option value="inker"> Inker </option>
+    <option value="colorist"> Colorist </option>
+    <option value="letterer"> Letterer </option>
+    <option value="editor"> Editor </option>
+    <option value="credit"> Any Credit </option>
+    <option value="story"> Story Title </option>
+    <option value="by_feature"> Feature </option>
+    <option value="by_character"> Character </option>
+    <option style="font-size: 1pt; background-color: #000000;" disabled>&nbsp;</option>
+    <option value="job_number"> Job Number </option>
+    <option value="isbn"> ISBN </option>
+    <option value="barcode"> Barcode </option>
+    <option style="font-size: 1pt; background-color: #000000;" disabled>&nbsp;</option>
+    <option value="feature"> Feature Name </option>
+    <option value="character"> Character Name</option>
+    <option value="group"> Group Name</option>
+    <option value="keyword"> Keyword </option>
+    <option value="publisher"> Publisher Name </option>
+    <option value="brand_group"> Brand Group Name </option>
+    <option value="brand"> Brand Emblem Name </option>
+    <option value="indicia_publisher"> Indicia Publisher Name </option>
+</select>
+
+        </span>
+        <input type="search" name="query" value="" placeholder="Search..."
+          class="w-full bg-white text-gray-600 px-1" />
+        <button type='submit' class="flex items-center justify-center bg-white px-2 my-[0.5px]">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192.904 192.904" width="16px" class="fill-black">
+          <path
+            d="m190.707 180.101-47.078-47.077c11.702-14.072 18.752-32.142 18.752-51.831C162.381 36.423 125.959 0 81.191 0 36.422 0 0 36.423 0 81.193c0 44.767 36.422 81.187 81.191 81.187 19.688 0 37.759-7.049 51.831-18.751l47.079 47.078a7.474 7.474 0 0 0 5.303 2.197 7.498 7.498 0 0 0 5.303-12.803zM15 81.193C15 44.694 44.693 15 81.191 15c36.497 0 66.189 29.694 66.189 66.193 0 36.496-29.692 66.187-66.189 66.187C44.693 147.38 15 117.689 15 81.193z">
+          </path>
+        </svg>
+        </button>
+        <span class="max-sm:hidden flex">
+  <select name="sort" class=" bg-blue-100 " size="1">
+    <option value="alpha" selected> Name</option>
+    <option value="chrono" > Date</option>
+</select>
+<script>
+    function updateSortSelect(event) {
+        var searchType = document.querySelector('select[name="search_type"]').value;
+        var sortSelect = document.querySelector('select[name="sort"]');
+        if (searchType.endsWith('haystack')) {
+            sortSelect.disabled = true;
+            sortSelect.value = '';
+        } else if (event && event.type === 'change') {
+            sortSelect.disabled = false;
+            sortSelect.selectedIndex = 0;
+        }
+    }
+    document.addEventListener('DOMContentLoaded', updateSortSelect);
+    document.querySelector('select[name="search_type"]').addEventListener('change', updateSortSelect);
+</script>
+
+        </span>
+      </div>
+    </form>
+  </div><!-- Search Box -->
+  <!-- Overall Navigation -->
+  <div class="flex flex-1 justify-end">
+    <!-- Mobile Menu Button Medium -->
+    <div class="lg:hidden items-center">
+      <button class="mobile-menu-button-gcd-md">
+        <svg class="pointer-events-none" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+  <title>bars-3-bottom-left</title>
+  <g fill="none">
+    <path d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25H12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" st
+roke-linejoin="round"></path>
+  </g>
+</svg>
+
+      </button>
+      <div class="navigation-menu hidden absolute right-0  bg-gcd  text-white rounded-b-lg pb-2 z-50 w-48">
+        <a class="block px-3 py-1 text-white visited:text-white  hover:bg-blue-700  hover:no-underline" href="/search/advanced/">Advanced Query</a>
+        
+        <a class="block px-3 py-1 text-white visited:text-white  hover:bg-blue-700  hover:no-underline" href="/donate/">Donate</a>
+        
+        
+<button class="block dropdown-toggle py-1 px-1 rounded  hover:bg-blue-700 ">
+  <span class="pointer-events-none max-lg:hidden">
+    <img class="w-10" src='/static/img/gcd/icons/adwaita/avatar-default-symbolic.svg'>
+  </span>
+</button>
+<div class="dropdown-menu absolute right-0 hidden  bg-gcd  text-white rounded-b-lg pb-2 w-48">
+
+<a href="https://docs.comics.org/wiki/OI_Tutorial" class="block px-3 py-1  hover:bg-blue-700  hover:no-underline text-white visited:text-white">Tutorial</a>
+<a href="https://docs.comics.org/" class="block px-3 py-1  hover:bg-blue-700  hover:no-underline text-white visited:text-white">Documentation</a>
+<a href="https://docs.comics.org/wiki/Email_Lists_FAQ"
+  class="block px-3 py-1  hover:bg-blue-700  hover:no-underline text-white visited:text-white">Mailing Lists</a>
+
+
+  <a href="/accounts/register/" class="block px-3 py-1  hover:bg-blue-700  hover:no-underline text-white visited:text-white">Sign Up</a>
+  <form action="/accounts/login/" method="GET">
+    <input class="w-full text-left px-3 py-1  hover:bg-blue-700  hover:no-underline text-white visited:text-white" type="submit" name="login" value="Log In">
+    <input type="hidden" name="next" value="/series/901/">
+  </form>
+   
+</div>
+
+      </div>
+    </div><!-- Mobile Menu Button Medium -->
+      <!-- Primary Navigation -->
+    <div class="max-md:right-0 hidden flex-col lg:flex lg:flex-row md:flex-col justify-end text-white items-center">
+      <a class="text-white visited:text-white hover:no-underline" href="/search/advanced/">
+        <button class="btn  hover:bg-blue-700 ">
+          Advanced Query
+        </button>
+      </a>
+      
+      <a class="text-white visited:text-white hover:no-underline" href="/donate/">
+        <button class="btn  hover:bg-blue-700 ">
+          Donate
+        </button>
+      </a>
+      
+      <!-- Dropdown Menu -->
+      <div class="inline z-50">
+        
+<button class="block dropdown-toggle py-1 px-1 rounded  hover:bg-blue-700 ">
+  <span class="pointer-events-none max-lg:hidden">
+    <img class="w-10" src='/static/img/gcd/icons/adwaita/avatar-default-symbolic.svg'>
+  </span>
+</button>
+<div class="dropdown-menu absolute right-0 hidden  bg-gcd  text-white rounded-b-lg pb-2 w-48">
+
+<a href="https://docs.comics.org/wiki/OI_Tutorial" class="block px-3 py-1  hover:bg-blue-700  hover:no-underline text-white visited:text-white">Tutorial</a>
+<a href="https://docs.comics.org/" class="block px-3 py-1  hover:bg-blue-700  hover:no-underline text-white visited:text-white">Documentation</a>
+<a href="https://docs.comics.org/wiki/Email_Lists_FAQ"
+  class="block px-3 py-1  hover:bg-blue-700  hover:no-underline text-white visited:text-white">Mailing Lists</a>
+
+
+  <a href="/accounts/register/" class="block px-3 py-1  hover:bg-blue-700  hover:no-underline text-white visited:text-white">Sign Up</a>
+  <form action="/accounts/login/" method="GET">
+    <input class="w-full text-left px-3 py-1  hover:bg-blue-700  hover:no-underline text-white visited:text-white" type="submit" name="login" value="Log In">
+    <input type="hidden" name="next" value="/series/901/">
+  </form>
+   
+</div>
+
+      </div><!-- Dropdown Menu -->
+    </div><!-- Primary Navigation -->
+  </div><!-- Overall Navigation -->
+</nav>
+
+<script type="text/javascript">
+document.addEventListener("DOMContentLoaded", () => {
+  // Select all dropdown toggle buttons
+  const dropdownToggles = document.querySelectorAll(".dropdown-toggle, .mobile-menu-button-gcd-md")
+
+  // Clicking outside of an open dropdown menu closes it
+  window.addEventListener("click", function (e) {
+    if (!e.target.closest(".dropdown-toggle") && !e.target.closest(".mobile-menu-button-gcd-md") ) {
+      found = false // check if the click was inside the nav menu, avoid closing dropdown menu
+                    // only visual effect, not functional
+      document.querySelectorAll(".navigation-menu").forEach((menu) => {
+        if (!menu.contains(e.target)) {
+          menu.classList.add("hidden")
+        }
+        else {
+          found = true
+        }
+      })
+      document.querySelectorAll(".dropdown-menu").forEach((menu) => {
+        if (!menu.contains(e.target) && !found) {
+          menu.classList.add("hidden")
+        }
+      })
+    }
+    else {
+      document.querySelectorAll(".navigation-menu").forEach((menu) => {
+        menu.classList.toggle("hidden")
+      })
+      document.querySelectorAll(".dropdown-menu").forEach((menu) => {
+        menu.classList.toggle("hidden")
+      })
+    }
+  })
+})
+</script>
+
+  
+  
+<nav class="flex items-center justify-between flex-wrap bg-blue-100 px-1 lg:px-2">
+  <div class="flex-1 font-bold text-2xl self-start">
+    Characterization Series (1950 series)
+  </div>
+  <div class="font-bold max-sm:max-w-[25%]">
+    
+      Published in Charspeak
+    
+    
+      (Charland)
+      <img class="inline" src="/static/img/gcd/flags/zc.png" alt="Charland">
+      
+  </div>
+</nav>
+
+
+  <div class="px-1 md:px-2">
+  
+<div class="flex">
+  <div class="flex-1 items-start"> <!-- content -->
+  
+<table>
+  <tr>
+    <td class="align-top">
+      <div class="w-[100px] sm:w-[200px] mt-1 text-center">
+  
+      </div>
+    </td>
+    <td class="align-top">
+      <div class="flex ps-1">
+        <div>
+          <ul>
+            <li><span class="font-bold">Publisher:</span> <a href="/publisher/901/">Characterization Publisher</a></li>
+          </ul>
+          <ul class="object-page-link-list">
+            <li><a href="/series/901/details/">Details by Issue</a></li>
+            <li><a href="/series/901/details/timeline/">Series Monthly Timeline</a></li>
+          </ul>
+          <ul class="object-page-link-list">
+            <li><a href='/series/901/overview/'>Cover and Main Story Overview</a></li>
+            <li><a href='/series/901/details/creators/'>Creator List</a></li>
+            <li><a href='/series/901/details/creator_names/'>Creator Name List</a></li>
+            <li><a href='/series/901/characters/'>Character List</a></li>
+  
+          </ul>
+          <ul>
+            <li><span class="font-bold">Publication Date:</span> January 1950</li>
+  
+            <li><span class="font-bold">Number of Issues Published:</span> 1 
+    </li>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+    
+
+  
+          </ul>
+
+  
+
+    
+          <div class="md:columns-2">
+            <h3>Publisher's Brands:</h3>
+            <ul class="break-inside-avoid-column columns-1 object-page-link-list">
+      
+      
+      
+              <li> without publisher's brand data
+                 (<a href="/search/advanced/process/?target=issue&amp;method=iexact&amp;logic=False&amp;order1=series&amp;order2=date&amp;order3=&amp;pub_name=Characterization%20Publisher&amp;series=Characterization%20Series&amp;brand_emblem=[IS_EMPTY]&amp;issue_count=1&amp;series_year_began=1950">1 issue</a>)
+      
+            </ul>
+    
+  
+
+            <div class="break-inside-avoid-column">
+              <h3>Indicia Publishers:</h3>
+              <ul class="object-page-link-list columns-1">
+  
+  
+    
+                <li> without indicia publisher data
+                 (<a href="/search/advanced/process/?target=issue&amp;method=iexact&amp;logic=False&amp;order1=series&amp;order2=date&amp;order3=&amp;pub_name=Characterization%20Publisher&amp;series=Characterization%20Series&amp;indicia_publisher=[IS_EMPTY]&amp;issue_count=1&amp;series_year_began=1950">1 issue</a>)
+    
+  
+              </ul>
+            </div>
+          </div>
+
+        </div>
+      </div> 
+    </td>
+  </tr> 
+</table>
+
+  </div>
+  <div class="flex justify-end"> <!-- editing -->
+    <div class="mt-1">
+  
+      <div class="max-md:hidden flex label-gcd-blue">Editing</div>
+  
+      <div class="md:hidden h-8">
+        <button class="mobile-editing-menu-button  bg-gcd  rounded w-9 py-0.5 ps-1 right-1 ">
+            <svg class="pointer-events-none" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+  <title>bars-3-bottom-left</title>
+  <g fill="none">
+    <path d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25H12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" st
+roke-linejoin="round"></path>
+  </g>
+</svg>
+
+        </button>
+      </div>
+      <div class="w-60 editing-menu max-md:hidden max-md:absolute z-10 overflow-hidden bg-white max-md:right-0">
+  
+    
+  
+  
+
+
+  
+    
+      
+    <form action="/accounts/login/" method="GET">
+      <button class="w-full pe-2">
+        <input class="mt-1 btn btn-blue-editing w-full mb-0" type="submit" name="login" value="Log In To Edit">
+        <input type="hidden" name="next" value="/series/901/">
+      </button>
+    </form>
+      
+    
+  
+
+  
+   <!-- logged in -->
+
+  
+
+  
+  
+
+
+
+<details class="[&_svg]:open:rotate-90">
+  
+  <summary class="list-none">
+    <div class="bg-my-comics text-white mt-1 font-bold px-2 py-1 text-center rounded">
+      <svg class="inline rotate-0 transform text-blue-700 transition-all duration-300" fill="none" height="20" width="20" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24">
+        <polyline points="6 3 12 9 6 15"></polyline>
+      </svg>
+  my.comics.org
+    </div>
+  </summary>
+  <div class="mx-1">
+    
+    
+  
+  
+  
+<div class="bg-my-comics mt-1 font-bold px-2 py-1 text-center rounded">
+<a class="text-white visited:text-white" href="http://my.comics.org/series/901/">Series at my.comics.org</a>
+</div>
+  
+</details>
+
+  
+    
+    
+      
+        <a class="link-with-text-color " href="/series/901/history/">
+      
+          <btn class="btn btn-blue mt-1 block text-center font-bold px-2 py-1 text-base mx-0">
+            View Change History
+          </btn>
+        </a>
+    
+  
+  
+
+
+  
+    
+  
+
+      </div>
+  
+  
+  
+  
+  
+  
+  
+    </div>  
+  </div>
+</div>
+<div>
+  
+  
+  
+  
+  
+
+    
+
+<a name="index_status"></a>
+<h3 class="my-1"> Index Status </h3>
+    
+
+
+<div>
+<table class="status">
+  <tr class="flex flex-wrap font-bold [&_td]:px-3 [&_td]:border-t-2 [&_td]:border-b-2">
+    <td class="bg-green-600 border-s-2"> Indexed </td>
+    <td class="bg-green-400"> Partially Indexed </td>
+    <td class="bg-green-200"> Some Data </td>
+    <td class=""> Skeleton Data Only </td>
+    <td class="bg-yellow-400"> Pending Approval </td>
+    <td class="bg-red-400 border-e-2"> Reserved </td>
+  </tr>
+</table>
+  <div class="flex flex-wrap">
+  
+    <div class="border  basis-24 text-center ms-[1px] mt-[1px] hover:bg-blue-400">
+      <a class="block hover:no-underline link-with-text-color font-bold" href="/issue/901/">1</a> </td>
+    </div>
+
+  </div>
+</div>
+
+    
+<a name="cover_status"></a>
+<h3 class="my-1"> Cover Status </h3>
+      
+
+<div>
+  <table class="status">
+    <tr class="flex flex-wrap font-bold [&_td]:px-3 [&_td]:border-t-2 [&_td]:border-b-2">
+      <td class="bg-green-600 border-s-2"> Scan Available </td>
+      <td class="bg-green-300"> Scan Needs Replacement </td>
+      <td class="border-e-2"> No Scan Available </td>
+    </tr>
+  </table>
+  <div class="flex flex-wrap">
+
+  
+    <div class="border basis-24 text-center ms-[1px] mt-[1px] hover:bg-blue-400">
+      <a class="block hover:no-underline link-with-text-color font-bold" href="/upload_cover/901/">1</a>
+  
+    </div>
+
+  </div>
+</div>
+
+    
+  <a name="image_resources_status"></a>
+<h3 class="my-1"> Image Resources Status </h3>
+    
+
+
+<div>
+<table class="status">
+  <tr class="flex flex-wrap font-bold [&_td]:px-3 [&_td]:border-t-2 [&_td]:border-b-2">
+    <td class="border-s-2 bg-green-600"> Statement of Ownership and Indicia </td>
+    <td class="bg-indigo-200"> Indicia </td>
+    <td class="bg-cyan-400"> Statement of Ownership </td>
+    <td class="border-e-2"> No Scans </td>
+  </tr>
+</table>
+  <div class="flex flex-wrap">
+
+  <div class="border  basis-24 text-center ms-[1px] mt-[1px] hover:bg-blue-400">
+    <a class="block hover:no-underline link-with-text-color font-bold" href="/issue/901/image/">1</a> </td>
+  </div>
+
+  </div>
+</div>
+
+  
+
+</div>
+
+  
+<script type="text/javascript">
+    document.addEventListener("DOMContentLoaded", () => {
+    
+      // Clicking outside of an open dropdown menu closes it
+      window.addEventListener("click", function (e) {
+        if (!e.target.closest(".mobile-editing-menu-button") ) {
+          document.querySelectorAll(".editing-menu").forEach((menu) => {
+            if (!menu.contains(e.target)) {
+              menu.classList.add("max-md:hidden")
+            }
+          })
+        }
+        else {
+          document.querySelectorAll(".editing-menu").forEach((menu) => {
+            menu.classList.toggle("max-md:hidden")
+          })
+        }
+      })
+      
+    })
+</script>
+  
+
+
+  </div>
+  
+  
+
+
+
+  <div class="text-sm text-gray-700 bg-gray-200 px-2 py-1">
+  <div class="fine_print">
+
+  
+
+
+<div>
+  <div class="flex">
+    <div class="px-2">
+      <a href="/contact/ ">contact us</a>
+    </div>
+    <div class="px-2">
+      <a href="/donate/">donate</a>
+    </div>
+  
+    <div class="px-2">
+    
+    If you believe any of this data to be incorrect, please
+      <a class="new_window" href="https://errors.comics.org/enter_bug.cgi?product=GCD&amp;bug_file_loc=http://testserver/series/901/&amp;short_desc=Characterization%20Series%20%281950%20series%29"
+         target="_blank">let us know</a>.
+    
+    </div>
+  
+  </div>
+  <div class="footer_item">
+    Cover thumbnails are used for identification purposes only.
+    All rights to cover images reserved by the respective copyright holders.
+  </div>
+  <div class="flex">
+    <a rel="license" href="https://creativecommons.org/licenses/by-sa/4.0/">
+      <img class='inline w-48 pe-1' alt="Creative Commons License" src="/static/img/cc_sa_license88x31.png"></a>
+    <div>
+    
+All portions of <a href="http://www.comics.org/" rel="cc:attributionURL">the Grand Comics Database</a>&trade;, except where noted otherwise, are
+copyrighted by the GCD and are licensed under a <a rel="license" href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License (CC BY-SA 4.0)</a>. This includes but is not necessarily limited to our database schema and data distribution format.
+    
+    </div>
+  </div>
+  <div class="no_visited footer_item">
+    
+    The GCD <a href="/privacy/">Privacy Policy</a>.
+    The <a href="https://github.com/GrandComicsDatabase/gcd-django">GCD Web Site code</a> is licensed under the <a href="http://www.gnu.org/licenses/gpl.html">GNU General Public License</a>.
+  </div>
+</div>
+
+
+
+</div>
+
+  </div>
+
+</div>
+
+</body>
+</html>
