@@ -8,8 +8,6 @@ testpaths = ["apps"]
 line-length = 88
 extend-exclude = [
     "*/migrations/*",
-    "apps/inducks",
-    "apps/legacy/tools",
 ]
 
 [tool.ruff.lint]
