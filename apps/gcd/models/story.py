@@ -1442,7 +1442,7 @@ class HaystackMatchedStoryTable(HaystackStoryTable):
                     credit = ' '.join(credit).lower()
                     found = True
                     for term in search_terms:
-                        if not term.lower() in credit:
+                        if term.lower() not in credit:
                             found = False
                     if found:
                         matched_credits.append(c)
@@ -1461,7 +1461,7 @@ class HaystackMatchedStoryTable(HaystackStoryTable):
                     credit = ' '.join(credit).lower()
                     found = True
                     for term in search_terms:
-                        if not term.lower() in credit:
+                        if term.lower() not in credit:
                             found = False
                     if found:
                         matched_credits.append(c)

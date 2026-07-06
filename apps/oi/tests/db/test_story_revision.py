@@ -302,7 +302,7 @@ def test_delete_story(any_edit_story_rev, any_added_story, is_comics, old_status
         # will be tested separately post-refactor.  Just make sure that
         # it gets called.
         rev._reset_values.assert_called_once_with()
-    
+
     assert rev.deleted is True
     assert rev.story == any_added_story
     assert rev.story.deleted is True

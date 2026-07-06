@@ -46,12 +46,12 @@ class ReceivedAward(GcdData):
         app_label = 'gcd'
         ordering = ('award_year',)
         verbose_name_plural = 'Received Awards'
-      
+
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE,
                                      null=True, blank=True)
     object_id = models.PositiveIntegerField(null=True, blank=True)
     recipient = GenericForeignKey('content_type', 'object_id')
-    
+
     award = models.ForeignKey(Award, on_delete=models.CASCADE, null=True)
     award_name = models.CharField(max_length=255, blank=True)
     no_award_name = models.BooleanField(default=False)

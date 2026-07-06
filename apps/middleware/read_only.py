@@ -8,11 +8,11 @@ from django.utils.deprecation import MiddlewareMixin
 #
 
 class ReadOnlyMiddleware(MiddlewareMixin):
-    def process_response(self, request, response): 
+    def process_response(self, request, response):
         if request.user.is_authenticated:
             logout(request)
             return render_error(request, "Online editing is currently turned "
                 "off, no user can login. We are working on the site. "
-                "More information on the <a href='/'>main page</a>.", 
+                "More information on the <a href='/'>main page</a>.",
               redirect=False, is_safe=True)
         return response

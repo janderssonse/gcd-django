@@ -20,7 +20,7 @@ class StripWhitespaceMiddleware(object):
     """
 
     def __init__(self):
-        self.whitespace = re.compile('^\s*\n', re.MULTILINE)
+        self.whitespace = re.compile('^\\s*\n', re.MULTILINE)
         #self.whitespace_lead = re.compile('^\s+', re.MULTILINE)
         #self.whitespace_trail = re.compile('\s+$', re.MULTILINE)
 
@@ -37,4 +37,4 @@ class StripWhitespaceMiddleware(object):
                 response.content = self.whitespace.sub('', response.content)
             return response
         else:
-            return response   
+            return response

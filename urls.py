@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from django.urls import include, path
 from django.conf import settings
-from django.urls import path, re_path
+from django.urls import re_path
 from django.contrib import admin
 from django.views.generic import base as bv
 from django.shortcuts import redirect
@@ -67,9 +67,9 @@ read_only_patterns = [
         name='upload_cover'),
     path('edit_covers/<int:issue_id>/', read_only.dummy,
         name='edit_covers'),
-    re_path(r'^(?P<model_name>\w+)/(?P<id>\d+)/upload_image/(?P<image_type>\w+)/$', 
+    re_path(r'^(?P<model_name>\w+)/(?P<id>\d+)/upload_image/(?P<image_type>\w+)/$',
         read_only.dummy, name='upload_image'),
-    re_path(r'^(?P<model_name>\w+)/(?P<id>\d+)/replace_image/(?P<image_id>\d+)/$', 
+    re_path(r'^(?P<model_name>\w+)/(?P<id>\d+)/replace_image/(?P<image_id>\d+)/$',
         read_only.dummy, name='replace_image'),
     re_path(r'^(?P<model_name>\w+)/(?P<id>\d+)/delete/$', read_only.dummy,
         name='delete_revision'),

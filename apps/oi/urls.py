@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from django.urls import path, register_converter
-from django.urls import path, re_path
+from django.urls import re_path
 from django.contrib.auth.decorators import login_required
 from django.views.generic import base as bv
 

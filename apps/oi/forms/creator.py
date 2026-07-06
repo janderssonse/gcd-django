@@ -712,7 +712,7 @@ class CreatorRelationRevisionForm(forms.ModelForm):
            cd['from_creator'] == cd['to_creator']:
             raise forms.ValidationError(
               'Creator A and Creator B cannot be the same creator.')
-        if cd['creator_name'] and not cd['relation_type'].id in [2, 3, 4, 9]:
+        if cd['creator_name'] and cd['relation_type'].id not in [2, 3, 4, 9]:
             self.add_error(
               'creator_name', 'Select a creator name only for owners or '
                               'employees of a studio or for house names.')

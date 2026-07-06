@@ -87,7 +87,7 @@ class ConfigurableElasticBackend(Elasticsearch2SearchBackend):
             field_mapping = mapping[field_class.index_fieldname]
 
             if field_mapping['type'] == 'string' and field_class.indexed:
-                if not hasattr(field_class, 'facet_for') and not field_class.field_type in('ngram', 'edge_ngram'):
+                if not hasattr(field_class, 'facet_for') and field_class.field_type not in ('ngram', 'edge_ngram'):
                     field_mapping['analyzer'] = getattr(field_class, 'analyzer', self.DEFAULT_ANALYZER)
                 if not hasattr(field_class, 'facet_for') \
                    and field_class.field_type in('ngram', 'edge_ngram') \

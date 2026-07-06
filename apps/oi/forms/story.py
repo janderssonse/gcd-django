@@ -1240,7 +1240,7 @@ class StoryRevisionForm(KeywordBaseForm):
                           ['Select the correct feature for an in-house '
                            'column.'])
                 elif feature.feature_type.id == 3:
-                    if not cd['type'].id in [STORY_TYPES['ad'],
+                    if cd['type'].id not in [STORY_TYPES['ad'],
                                              STORY_TYPES['comics-form ad']]:
                         raise forms.ValidationError(
                           ['Incorrect feature for this sequence.'])
@@ -1266,7 +1266,7 @@ class StoryRevisionForm(KeywordBaseForm):
                           ['Select the correct feature logo for an '
                            'in-house column.'])
                 elif feature_logo.feature.filter(feature_type__id=3).count():
-                    if not cd['type'].id in [STORY_TYPES['ad'],
+                    if cd['type'].id not in [STORY_TYPES['ad'],
                                              STORY_TYPES['comics-form ad']]:
                         raise forms.ValidationError(
                           ['Incorrect feature logo for this sequence.'])
