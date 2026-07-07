@@ -10435,12 +10435,19 @@ def _walk_field_path(model_class, names):
 
 
 def _concrete_revision_classes():
+    """Every concrete production Revision subclass.
+
+    Test doubles (the dummy revisions under apps/oi/tests/) register as
+    Revision subclasses once another test imports them, so exclude anything
+    defined in a test module -- the validators are about the real schema.
+    """
     found = []
 
     def walk(cls):
         for sub in cls.__subclasses__():
             walk(sub)
-            if not sub._meta.abstract:
+            if not sub._meta.abstract and \
+                    'tests' not in sub.__module__.split('.'):
                 found.append(sub)
 
     walk(Revision)
@@ -10470,3 +10477,49 @@ def validate_revision_definitions():
                 errors.append('%s: %s -> %s'
                               % (cls.__name__, tuple(names), error))
     return errors
+
+
+def _revision_attr_exists(cls, name):
+    """True if `name` is a model field on `cls` or a class attribute
+    (property/descriptor) -- i.e. getattr(revision, name) can resolve it."""
+    try:
+        cls._meta.get_field(name)
+        return True
+    except FieldDoesNotExist:
+        return hasattr(cls, name)
+
+
+def validate_revision_field_lists():
+    """
+    Check that every name a revision lists in field_list() is a real field or
+    attribute and has a _get_blank_values() entry.
+
+    The compare/diff path does getattr(self, name) for each field_list name and
+    looks it up in _get_blank_values() for added objects (see _changed_fields),
+    so a stale name there crashes at compare time instead of degrading
+    silently -- but only when that revision type is next edited. This turns it
+    into a test failure.
+
+    Returns (errors, skipped). A few revisions (IssueRevision) build their
+    field_list from live changeset state and cannot be introspected from a
+    bare instance; they are returned in `skipped` -- and covered by the
+    add/compare flow tests -- rather than being silently ignored.
+    """
+    errors = []
+    skipped = []
+    for cls in _concrete_revision_classes():
+        try:
+            instance = cls()
+            names = list(instance.field_list())
+            blank_values = set(instance._get_blank_values())
+        except Exception:
+            skipped.append(cls.__name__)
+            continue
+        for name in names:
+            if not _revision_attr_exists(cls, name):
+                errors.append('%s.field_list: %r is not a field or attribute'
+                              % (cls.__name__, name))
+            elif name not in blank_values:
+                errors.append('%s: field_list entry %r has no '
+                              '_get_blank_values() entry' % (cls.__name__, name))
+    return errors, skipped

@@ -10,8 +10,15 @@ tests make that class of drift fail loudly instead.
 import pytest
 
 from apps.oi.models import (
-    validate_revision_definitions, Changeset, PublisherRevision,
+    validate_revision_definitions, validate_revision_field_lists,
+    Changeset, PublisherRevision,
 )
+
+# Revisions whose field_list()/_get_blank_values() read live changeset state
+# and so cannot be introspected from a bare instance. Asserted explicitly so a
+# NEW class dropping out of field_list validation fails loudly rather than
+# being silently skipped.
+FIELD_LIST_NEEDS_INSTANCE = {'IssueRevision'}
 
 
 def test_all_revision_field_paths_resolve():
@@ -19,6 +26,16 @@ def test_all_revision_field_paths_resolve():
     # point at real fields. A stale name here breaks count/stat propagation.
     errors = validate_revision_definitions()
     assert errors == [], 'stale revision field paths:\n%s' % '\n'.join(errors)
+
+
+def test_all_revision_field_lists_resolve():
+    # Every field_list() name must resolve on the revision and have a blank
+    # value; the compare path dereferences both by name.
+    errors, skipped = validate_revision_field_lists()
+    assert errors == [], 'stale revision field_list names:\n%s' % '\n'.join(
+        errors)
+    # Guard the skip set so no class silently escapes this check.
+    assert set(skipped) == FIELD_LIST_NEEDS_INSTANCE
 
 
 def test_clone_rejects_unknown_exclude():
