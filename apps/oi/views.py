@@ -5800,6 +5800,21 @@ def _reorder_children(request, parent, children, sort_field, child_set,
 ##############################################################################
 
 
+def _revision_accessor(change_type):
+    """
+    The Changeset reverse accessor for a change type's revisions.
+
+    Revisions relate to Changeset as '<lowercase-class-name>s', i.e. the
+    change-type name without underscores plus 'revisions'. All the issue
+    variants share the single IssueRevision set.
+    """
+    issue_family = ('issue', 'issue_add', 'issue_bulk',
+                    'variant_add', 'two_issues')
+    if change_type in issue_family:
+        return 'issuerevisions'
+    return change_type.replace('_', '') + 'revisions'
+
+
 @permission_required('indexer.can_reserve')
 def show_queue(request, queue_name):
     kwargs = {}
@@ -5825,39 +5840,36 @@ def show_queue(request, queue_name):
     changes = Changeset.objects.filter(**kwargs).select_related(
       'indexer__indexer', 'approver__indexer')
 
-    awards = changes.filter(change_type=CTYPES['award'])
-    creators = changes.filter(change_type=CTYPES['creator'])
-    creator_art_influences = changes.filter(
-      change_type=CTYPES['creator_art_influence'])
-    received_awards = changes.filter(change_type=CTYPES['received_award'])
-    creator_memberships = changes.filter(
-      change_type=CTYPES['creator_membership'])
-    creator_non_comic_works = changes.filter(
-      change_type=CTYPES['creator_non_comic_work'])
-    creator_relations = changes.filter(change_type=CTYPES['creator_relation'])
-    creator_schools = changes.filter(change_type=CTYPES['creator_school'])
-    creator_signatures = changes.filter(
-      change_type=CTYPES['creator_signature'])
-    creator_degres = changes.filter(change_type=CTYPES['creator_degree'])
-    publishers = changes.filter(
-      change_type=CTYPES['publisher']) \
-        .prefetch_related('publisherrevisions__previous_revision',
-                          'publisherrevisions__country')
-    indicia_publishers = changes.filter(
-      change_type=CTYPES['indicia_publisher'])
-    brand_groups = changes.filter(change_type=CTYPES['brand_group'])
-    brands = changes.filter(change_type=CTYPES['brand'])
-    brand_uses = changes.filter(change_type=CTYPES['brand_use'])
-    printers = changes.filter(change_type=CTYPES['printer']) \
-                      .prefetch_related('printerrevisions__previous_revision',
-                                        'printerrevisions__country')
-    indicia_printers = changes.filter(change_type=CTYPES['indicia_printer'])
-    series = changes.filter(change_type=CTYPES['series'])\
-                    .prefetch_related('seriesrevisions__series')
-    series_bonds = changes.filter(change_type=CTYPES['series_bond'])
-    issue_adds = changes.filter(change_type=CTYPES['issue_add']) \
-                        .prefetch_related('issuerevisions__issue',
-                                          'issuerevisions__series')
+    def queue(change_type, *extra_prefetch):
+        # Each queue row renders its revision and shows the change against the
+        # previous revision, so always prefetch that; specialised buckets pass
+        # extra source relations.
+        accessor = _revision_accessor(change_type)
+        return changes.filter(change_type=CTYPES[change_type]) \
+                      .prefetch_related('%s__previous_revision' % accessor,
+                                        *extra_prefetch)
+
+    awards = queue('award')
+    creators = queue('creator')
+    creator_art_influences = queue('creator_art_influence')
+    received_awards = queue('received_award')
+    creator_memberships = queue('creator_membership')
+    creator_non_comic_works = queue('creator_non_comic_work')
+    creator_relations = queue('creator_relation')
+    creator_schools = queue('creator_school')
+    creator_signatures = queue('creator_signature')
+    creator_degres = queue('creator_degree')
+    publishers = queue('publisher', 'publisherrevisions__country')
+    indicia_publishers = queue('indicia_publisher')
+    brand_groups = queue('brand_group')
+    brands = queue('brand')
+    brand_uses = queue('brand_use')
+    printers = queue('printer', 'printerrevisions__country')
+    indicia_printers = queue('indicia_printer')
+    series = queue('series', 'seriesrevisions__series')
+    series_bonds = queue('series_bond')
+    issue_adds = queue('issue_add', 'issuerevisions__issue',
+                       'issuerevisions__series')
     issues = changes.filter(change_type__in=[CTYPES['issue'],
                                              CTYPES['variant_add'],
                                              CTYPES['two_issues']])\
@@ -5865,24 +5877,20 @@ def show_queue(request, queue_name):
                                       'issuerevisions__variant_of',
                                       'issuerevisions__series',
                                       'issuerevisions__previous_revision')
-    issue_bulks = changes.filter(change_type=CTYPES['issue_bulk'])
-    covers = changes.filter(change_type=CTYPES['cover'])\
-                    .prefetch_related('coverrevisions__previous_revision',
-                                      'coverrevisions__cover')
-    story_arcs = changes.filter(change_type=CTYPES['story_arc'])
-    story_arc_relations = changes.filter(
-      change_type=CTYPES['story_arc_relation'])
-    features = changes.filter(change_type=CTYPES['feature'])
-    feature_logos = changes.filter(change_type=CTYPES['feature_logo'])
-    feature_relations = changes.filter(change_type=CTYPES['feature_relation'])
-    universes = changes.filter(change_type=CTYPES['universe'])
-    characters = changes.filter(change_type=CTYPES['character'])
-    character_relations = changes.filter(
-      change_type=CTYPES['character_relation'])
-    groups = changes.filter(change_type=CTYPES['group'])
-    group_relations = changes.filter(change_type=CTYPES['group_relation'])
-    group_memberships = changes.filter(change_type=CTYPES['group_membership'])
-    images = changes.filter(change_type=CTYPES['image'])
+    issue_bulks = queue('issue_bulk')
+    covers = queue('cover', 'coverrevisions__cover')
+    story_arcs = queue('story_arc')
+    story_arc_relations = queue('story_arc_relation')
+    features = queue('feature')
+    feature_logos = queue('feature_logo')
+    feature_relations = queue('feature_relation')
+    universes = queue('universe')
+    characters = queue('character')
+    character_relations = queue('character_relation')
+    groups = queue('group')
+    group_relations = queue('group_relation')
+    group_memberships = queue('group_membership')
+    images = queue('image')
     countries = dict(Country.objects.values_list('id', 'code'))
     country_names = dict(Country.objects.values_list('id', 'name'))
     response = oi_render(
