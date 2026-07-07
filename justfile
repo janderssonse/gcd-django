@@ -25,6 +25,10 @@ build:
 db:
     {{dc}} up -d --wait db memcached
 
+# Load all fixtures onto the committed schema snapshot (fast; no migration replay). Destructive to dev data.
+seed-fast: restore
+    {{web}} python manage.py seed_dev --no-migrate
+
 # Migrate an empty database and load all fixtures (full replay).
 seed: db
     {{web}} python manage.py seed_dev
@@ -32,6 +36,9 @@ seed: db
 # Add a small sample of publishers/series/issues for a populated site
 sample: db
     {{web}} python manage.py sample_data
+
+# Snapshot-based onboarding: clean clone to a populated, running site in seconds
+fresh-fast: build seed-fast sample up
 
 # One command from a clean clone to a populated, running site
 fresh: build seed sample up
@@ -48,8 +55,26 @@ down:
 reset:
     {{dc}} down -v
 
+# Regenerate the committed migrated-schema snapshot (run after adding migrations)
+snapshot: db
+    {{mysql}} -e "DROP DATABASE IF EXISTS test_snapshot; CREATE DATABASE test_snapshot CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+    {{dc}} run --rm --no-deps -w /code/gcd-django -e MYSQL_DATABASE=test_snapshot web python manage.py migrate --noinput
+    {{dc}} exec -T db sh -c "exec mysqldump -ugcd-django -pdb-gcd --no-tablespaces --single-transaction --skip-dump-date --skip-comments test_snapshot" > db/schema-snapshot.sql
+    {{mysql}} -e "DROP DATABASE IF EXISTS test_snapshot;"
+    @echo "Wrote db/schema-snapshot.sql ($(wc -l < db/schema-snapshot.sql) lines)."
 
+# Load the schema snapshot into a fresh dev DB (seconds; skips the migration replay). Destructive to dev data.
+restore: db
+    {{mysql}} -e "DROP DATABASE IF EXISTS \`my-gcd-db\`; CREATE DATABASE \`my-gcd-db\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+    {{dc}} exec -T db sh -c "exec mysql -ugcd-django -pdb-gcd my-gcd-db" < db/schema-snapshot.sql
 
+# Verify the snapshot is current: fails if migrations exist that it lacks
+snapshot-check: db
+    {{mysql}} -e "DROP DATABASE IF EXISTS test_snapcheck; CREATE DATABASE test_snapcheck CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+    {{dc}} exec -T db sh -c "exec mysql -ugcd-django -pdb-gcd test_snapcheck" < db/schema-snapshot.sql
+    {{dc}} run --rm --no-deps -w /code/gcd-django -e MYSQL_DATABASE=test_snapcheck web python manage.py migrate --check
+    {{mysql}} -e "DROP DATABASE IF EXISTS test_snapcheck;"
+    @echo "Snapshot is current."
 
 # Run the test suite, reusing the test database (fast)
 test *ARGS: db

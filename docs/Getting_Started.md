@@ -27,6 +27,13 @@ sample data, and starts the server.
 `just fresh` migrates an empty database and loads everything, which takes
 a few minutes. `just seed` does the same without starting the server.
 
+With the committed schema snapshot the same happens in seconds:
+
+```
+just fresh-fast     # snapshot + fixtures + sample data + serve
+just seed-fast      # snapshot + fixtures only (no serve)
+```
+
 Run the test suite the same way:
 
 ```
@@ -64,6 +71,21 @@ docker compose --project-directory ../gcd-django-docker up web
 
 `seed_dev` runs the migrations and loads all fixtures; `--no-migrate` loads
 fixtures only. See the `justfile` for the exact commands each recipe runs.
+
+### Keeping the snapshot current
+
+The snapshot is a plain `mysqldump` of a freshly-migrated database and must
+be regenerated whenever migrations change:
+
+```
+just snapshot        # regenerate db/schema-snapshot.sql (after adding migrations)
+just snapshot-check  # fail if the snapshot is missing any migration
+```
+
+`snapshot`/`snapshot-check` build in a throwaway `test_snapshot` database
+(the app DB user is granted rights on `test_%` names), so they never touch
+your dev data. A stale snapshot fails `just snapshot-check`, so regenerate and commit it
+together with new migrations.
 
 The web container is configured by the `settings_local.py` that
 gcd-django-docker mounts into it; there is nothing to set up in this
