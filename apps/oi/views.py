@@ -2451,7 +2451,7 @@ def add_issue(request, series_id, sort_after=None, variant_of=None,
         else:
             initial = {}
             reversed_issues = series.active_issues().order_by('-sort_code')
-            if reversed_issues.count():
+            if reversed_issues.exists():
                 initial['after'] = reversed_issues[0].id
             form = form_class(initial=initial)
         return _display_add_issue_form(request, series, form,
@@ -2792,7 +2792,7 @@ def add_issues(request, series_id, method=None):
     if request.method != 'POST':
         reversed_issues = series.active_issues().order_by('-sort_code')
         initial = {}
-        if reversed_issues.count():
+        if reversed_issues.exists():
             initial['after'] = reversed_issues[0].id
         form = form_class(initial=initial)
         return _display_bulk_issue_form(request, series, form,
@@ -3590,7 +3590,7 @@ def add_story(request, issue_revision_id, changeset_id):
         form.save_m2m()
         revision.post_form_save()
 
-        if revision.feature_logo.count():
+        if revision.feature_logo.exists():
             # stories for variants in variant-add next to issue have issue
             if revision.issue:
                 language = revision.issue.series.language
@@ -4991,7 +4991,7 @@ def remove_reprint_revision(request, id):
 
     # we fully delete the freshly added link, but first check if a
     # comment is attached.
-    if reprint.comments.count():
+    if reprint.comments.exists():
         comment = reprint.comments.latest('created')
         comment.text += '\nThe ReprintRevision "%s" for which this comment '\
                         'was entered was removed.' % reprint
@@ -5368,7 +5368,7 @@ def remove_story_revision(request, id):
 
     # we fully delete the freshly added sequence, but first check if a
     # comment is attached.
-    if story.comments.count():
+    if story.comments.exists():
         comment = story.comments.latest('created')
         # might be set anyway. But if we don't set it we would get <span ...
         # in the response and we cannot mark a comment as safe.

@@ -4845,18 +4845,18 @@ class IssueRevision(Revision):
             return True
         if self.issue.to_reprints\
                .filter(revisions__changeset=self.changeset)\
-               .count():
+               .exists():
             return True
         if self.issue.from_reprints\
                .filter(revisions__changeset=self.changeset)\
-               .count():
+               .exists():
             return True
         if self.changeset.state == states.APPROVED:
             active = ReprintRevision.objects.\
                 filter(next_revision__in=self.changeset.reprintrevisions.all())
-            if active.filter(origin_issue=self.issue):
+            if active.filter(origin_issue=self.issue).exists():
                 return True
-            if active.filter(target_issue=self.issue):
+            if active.filter(target_issue=self.issue).exists():
                 return True
         return False
 
