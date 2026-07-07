@@ -4875,11 +4875,20 @@ class IssueRevision(Revision):
         return self.ordered_story_revisions()
 
     def _story_revisions(self):
+        # previous_revision is read by previous()/compare_changes, and the
+        # feature m2m is iterated per story when rendering compare/preview,
+        # so pull them in up front to avoid a query per story revision.
         if self.source is None:
             return self.changeset.storyrevisions.filter(issue__isnull=True)\
-                                 .select_related('changeset', 'type')
+                                 .select_related('changeset', 'type',
+                                                 'previous_revision')\
+                                 .prefetch_related('feature_object',
+                                                   'feature_logo')
         return self.changeset.storyrevisions.filter(issue=self.source)\
-                             .select_related('changeset', 'issue', 'type')
+                             .select_related('changeset', 'issue', 'type',
+                                             'previous_revision')\
+                             .prefetch_related('feature_object',
+                                               'feature_logo')
 
     def ordered_story_revisions(self):
         return self._story_revisions().order_by('sequence_number')
