@@ -6,7 +6,7 @@ import mock
 import pytest
 
 from apps.stddata.models import Country, Language
-from apps.stats.models import CountStats
+from apps.stats.models import CountStats, CountStatsManager
 from apps.gcd.models.issue import INDEXED
 
 
@@ -208,151 +208,70 @@ def test_init_stats_neither(patched_filters):
             mock.call(name='stories', count=STORY_COUNT, **lc_args)])
 
 
-@pytest.fixture
-def mocks_for_update():
-    """
-    Returns a 4-tuple of mocks for testing CountStatsManager.update().
+# update_count is now a single atomic UPDATE per statistic, so these assert
+# on the resulting database state rather than on get()/save() call chains.
 
-    In order, they are:
-        * CountStatsManager.get() which returns a mock from the list below
-        * CountStatsManager.init_stats()
-        * F() which returns a MagicMock(spec=int)
-        * The list of MagicMock(spec=CountStats) the get_mock uses.
-
-    Specifically, each call to the get_mock() will return the next
-    element of the list.  There are at most three such calls in update()
-    """
-
-    path = 'apps.stats.models'
-    with mock.patch('%s.CountStatsManager.get' % path) as get_mock, \
-            mock.patch('%s.CountStatsManager.init_stats' % path) as is_mock, \
-            mock.patch('django.db.models.F') as f_mock:
-
-        cs_mocks = [mock.MagicMock(spec=CountStats) for x in range(0, 3)]
-        get_mock.side_effect = cs_mocks
-        f_mock.return_value = mock.MagicMock(spec=int)
-
-        yield get_mock, is_mock, f_mock, cs_mocks
+@pytest.mark.django_db
+def test_update_count_generic_only():
+    CountStats.objects.create(name='foo', count=10)
+    CountStats.objects.update_count('foo', 3)
+    assert CountStats.objects.get(name='foo', language=None,
+                                  country=None).count == 13
 
 
-def _check_delta_applications(f_mock, cs_mocks, num_gets):
-    # You can't create a call object for __add__ calls because it tries
-    # to actually add the call object to whatever you pass in.
-    # But the full has_calls list for f_mock includes both the F()
-    # calls and the chained __add__ calls in it.
-    # So just check that we have three F('counts') and that the
-    # non-chained call count is 3, and then check __add__ directly
-    # on the result mock.
-    f_mock.assert_has_calls([mock.call('count') for x in range(0, num_gets)],
-                            any_order=True)
-    assert f_mock.call_count == num_gets
-
-    f_mock.return_value.__add__.assert_has_calls(
-        [mock.call(1) for x in range(0, num_gets)])
-    assert f_mock.return_value.__add__.call_count == num_gets
-
-    # Make sure we saved however many mocks we should have found
-    # from successful get() calls, and didn't save the rest.
-    for cs_mock in cs_mocks[:num_gets]:
-        cs_mock.save.assert_called_once_with()
-    for cs_mock in cs_mocks[num_gets:]:
-        assert cs_mock.save.call_count == 0
+@pytest.mark.django_db
+def test_update_count_negative_delta():
+    CountStats.objects.create(name='foo', count=10)
+    CountStats.objects.update_count('foo', -4)
+    assert CountStats.objects.get(name='foo', language=None,
+                                  country=None).count == 6
 
 
-def test_update_both(mocks_for_update):
-    get_mock, is_mock, f_mock, cs_mocks = mocks_for_update
+@pytest.mark.django_db
+def test_update_count_language_and_country():
+    language = Language.objects.create(code='xu', name='UT Language')
+    country = Country.objects.create(code='xv', name='UT Country')
+    CountStats.objects.create(name='foo', count=10)
+    CountStats.objects.create(name='foo', language=language, count=5)
+    CountStats.objects.create(name='foo', country=country, count=2)
 
-    CountStats.objects.update_count('foo', 1, country=ANY_COUNTRY,
-                                    language=ANY_LANGUAGE)
-    assert is_mock.call_count == 0
+    CountStats.objects.update_count('foo', 3, language=language,
+                                    country=country)
 
-    get_mock.assert_has_calls([
-        mock.call(name='foo', language=None, country=None),
-        mock.call(name='foo', language=ANY_LANGUAGE, country=None),
-        mock.call(name='foo', language=None, country=ANY_COUNTRY)])
-
-    _check_delta_applications(f_mock, cs_mocks, 3)
-
-
-def test_update_language(mocks_for_update):
-    get_mock, is_mock, f_mock, cs_mocks = mocks_for_update
-
-    CountStats.objects.update_count('foo', 1, language=ANY_LANGUAGE)
-    assert is_mock.call_count == 0
-
-    get_mock.assert_has_calls([
-        mock.call(name='foo', language=None, country=None),
-        mock.call(name='foo', language=ANY_LANGUAGE, country=None)])
-
-    _check_delta_applications(f_mock, cs_mocks, 2)
+    assert CountStats.objects.get(name='foo', language=None,
+                                  country=None).count == 13
+    assert CountStats.objects.get(name='foo', language=language,
+                                  country=None).count == 8
+    assert CountStats.objects.get(name='foo', language=None,
+                                  country=country).count == 5
 
 
-def test_update_country(mocks_for_update):
-    get_mock, is_mock, f_mock, cs_mocks = mocks_for_update
+@pytest.mark.django_db
+def test_update_count_inits_missing_language_stat():
+    # The generic stat exists, but there is no language stat for this field
+    # yet, so the whole language set is initialized instead of updated.
+    language = Language.objects.create(code='xu', name='UT Language')
+    CountStats.objects.create(name='foo', count=10)
 
-    CountStats.objects.update_count('foo', 1, country=ANY_COUNTRY)
-    assert is_mock.call_count == 0
+    with mock.patch.object(CountStatsManager, 'init_stats') as is_mock:
+        CountStats.objects.update_count('foo', 3, language=language)
 
-    get_mock.assert_has_calls([
-        mock.call(name='foo', language=None, country=None),
-        mock.call(name='foo', language=None, country=ANY_COUNTRY)])
-
-    _check_delta_applications(f_mock, cs_mocks, 2)
-
-
-def test_update_neither(mocks_for_update):
-    get_mock, is_mock, f_mock, cs_mocks = mocks_for_update
-
-    CountStats.objects.update_count('foo', 1)
-
-    get_mock.assert_called_once_with(name='foo', language=None, country=None)
-    _check_delta_applications(f_mock, cs_mocks, 1)
+    is_mock.assert_called_once_with(language=language)
+    assert CountStats.objects.get(name='foo', language=None,
+                                  country=None).count == 13
 
 
-def test_update_init_language_update_both(mocks_for_update):
-    get_mock, is_mock, f_mock, cs_mocks = mocks_for_update
+@pytest.mark.django_db
+def test_update_count_inits_missing_country_stat():
+    country = Country.objects.create(code='xv', name='UT Country')
+    CountStats.objects.create(name='foo', count=10)
 
-    cs_iter = iter(cs_mocks)
+    with mock.patch.object(CountStatsManager, 'init_stats') as is_mock:
+        CountStats.objects.update_count('foo', 3, country=country)
 
-    def fake_get(name=None, language=None, country=None):
-        if language:
-            raise CountStats.DoesNotExist
-        else:
-            return next(cs_iter)
-
-    get_mock.side_effect = fake_get
-    CountStats.objects.update_count('foo', 1, country=ANY_COUNTRY,
-                                    language=ANY_LANGUAGE)
-    is_mock.assert_called_once_with(language=ANY_LANGUAGE)
-
-    get_mock.assert_has_calls([
-        mock.call(name='foo', language=None, country=None),
-        mock.call(name='foo', language=ANY_LANGUAGE, country=None),
-        mock.call(name='foo', language=None, country=ANY_COUNTRY)])
-
-    _check_delta_applications(f_mock, cs_mocks, 2)
-
-
-def test_update_init_country_no_language(mocks_for_update):
-    get_mock, is_mock, f_mock, cs_mocks = mocks_for_update
-
-    cs_iter = iter(cs_mocks)
-
-    def fake_get(name=None, language=None, country=None):
-        if country:
-            raise CountStats.DoesNotExist
-        else:
-            return next(cs_iter)
-
-    get_mock.side_effect = fake_get
-    CountStats.objects.update_count('foo', 1, country=ANY_COUNTRY)
-    is_mock.assert_called_once_with(country=ANY_COUNTRY)
-
-    get_mock.assert_has_calls([
-        mock.call(name='foo', language=None, country=None),
-        mock.call(name='foo', language=None, country=ANY_COUNTRY)])
-
-    _check_delta_applications(f_mock, cs_mocks, 1)
+    is_mock.assert_called_once_with(country=country)
+    assert CountStats.objects.get(name='foo', language=None,
+                                  country=None).count == 13
 
 
 @pytest.fixture

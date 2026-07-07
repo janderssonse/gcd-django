@@ -72,26 +72,28 @@ class CountStatsManager(models.Manager):
 
         The generic statistic is always updated.  The language and/or
         country statistics are updated if their respective parameters
-        are not None.
+        are not None; if that statistic set does not exist yet it is
+        initialized instead.
+
+        Each update is a single atomic ``UPDATE ... SET count = count +
+        delta`` rather than a read-then-write, so it is one query per
+        statistic and safe under concurrency.
         """
-        stat = self.get(name=field, language=None, country=None)
-        stat.count = models.F('count') + delta
-        stat.save()
+        self.filter(name=field, language=None, country=None).update(
+            count=models.F('count') + delta)
 
         if language:
-            try:
-                stat = self.get(name=field, language=language, country=None)
-                stat.count = models.F('count') + delta
-                stat.save()
-            except CountStats.DoesNotExist:
+            updated = self.filter(name=field, language=language,
+                                  country=None).update(
+                count=models.F('count') + delta)
+            if not updated:
                 self.init_stats(language=language)
 
         if country:
-            try:
-                stat = self.get(name=field, language=None, country=country)
-                stat.count = models.F('count') + delta
-                stat.save()
-            except CountStats.DoesNotExist:
+            updated = self.filter(name=field, language=None,
+                                  country=country).update(
+                count=models.F('count') + delta)
+            if not updated:
                 self.init_stats(country=country)
 
     def update_all_counts(self, deltas, negate=False,
