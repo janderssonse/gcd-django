@@ -495,6 +495,10 @@ class Changeset(models.Model):
                     self.imagerevisions.all(),
                     self.datasourcerevisions.all())
 
+        raise ValueError(
+            'Changeset._revision_sets: unhandled change_type %r'
+            % self.change_type)
+
     @property
     def revisions(self):
         """
@@ -1054,11 +1058,12 @@ def _get_revision_lock(object, changeset=None):
 
 
 def _free_revision_lock(object):
+    # filter().delete() is idempotent: freeing an already-freed lock is a
+    # no-op rather than a DoesNotExist, which matters on retried commits.
     with transaction.atomic():
-        revision_lock = RevisionLock.objects.get(
+        RevisionLock.objects.filter(
           object_id=object.id,
-          content_type=ContentType.objects.get_for_model(object))
-        revision_lock.delete()
+          content_type=ContentType.objects.get_for_model(object)).delete()
 
 
 class RevisionLock(models.Model):
@@ -1658,6 +1663,27 @@ class Revision(models.Model):
         A set (or set-like object) of field names to exclude from copying
         may be passed.  This is particularly useful for forking.
         """
+        # Guard against exclude names that are not fields on either the
+        # revision or its data object. Such a name silently does nothing (the
+        # set subtraction is a no-op), which is exactly how a renamed field
+        # slips through -- e.g. excluding 'brand' after it became the
+        # 'brand_emblem' m2m. Data-object field names are allowed too because
+        # some (like 'on_sale_date') exist on the source but are split across
+        # different fields on the revision.
+        def _field_names(model_class):
+            fields = model_class._meta.get_fields()
+            return ({f.name for f in fields} |
+                    {f.get_attname() for f in fields if isinstance(f, Field)})
+
+        known_field_names = _field_names(cls) | {'keywords'}
+        if cls.source_class is not NotImplementedError:
+            known_field_names |= _field_names(cls.source_class)
+        unknown = set(exclude) - known_field_names
+        if unknown:
+            raise ValueError(
+                '%s.clone() was given exclude names that are not fields: %s'
+                % (cls.__name__, sorted(unknown)))
+
         # We start with all assignable fields, since we want to copy
         # old values even for deprecated fields.
         rev_kwargs = {field: getattr(data_object, field)
@@ -10382,3 +10408,65 @@ class PreviewCreatorNonComicWork(CreatorNonComicWork):
         return DataSourceRevision.objects.filter(
           revision_id=self.revision.id,
           content_type=ContentType.objects.get_for_model(self.revision))
+
+
+# #########################################################################
+# Revision-definition validation.
+#
+# Field identity in the revision system is expressed as name strings that are
+# matched to model attributes at runtime, so a rename silently turns a lookup
+# into a no-op -- the class of bug behind the brand_emblem regression. The
+# helpers below turn that silent drift into a loud, testable failure.
+
+def _walk_field_path(model_class, names):
+    """
+    Resolve a sequence of related field names, raising FieldDoesNotExist for
+    any name that is not a field on the model reached so far.
+
+    Unlike RelPath this tolerates a multi-valued intermediate step (the
+    brand_emblem -> group special case), since we only care that the names
+    exist, not that the path is traversable in a single query.
+    """
+    cls = model_class
+    for name in names:
+        field = cls._meta.get_field(name)
+        if field.is_relation and field.related_model is not None:
+            cls = field.related_model
+
+
+def _concrete_revision_classes():
+    found = []
+
+    def walk(cls):
+        for sub in cls.__subclasses__():
+            walk(sub)
+            if not sub._meta.abstract:
+                found.append(sub)
+
+    walk(Revision)
+    return found
+
+
+def validate_revision_definitions():
+    """
+    Check that the count/stats field-name paths on every revision class still
+    refer to real fields.
+
+    These tuples (parent, major-flag and stats-category paths) are turned into
+    RelPath lookups at commit time, so a stale name breaks count/stat
+    propagation silently. Returns a list of human-readable error strings; an
+    empty list means everything resolves.
+    """
+    errors = []
+    for cls in _concrete_revision_classes():
+        paths = set()
+        paths |= set(cls._get_parent_field_tuples())
+        paths |= set(cls._get_major_flag_field_tuples())
+        paths |= set(cls._get_stats_category_field_tuples())
+        for names in paths:
+            try:
+                _walk_field_path(cls, names)
+            except FieldDoesNotExist as error:
+                errors.append('%s: %s -> %s'
+                              % (cls.__name__, tuple(names), error))
+    return errors

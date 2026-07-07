@@ -643,7 +643,7 @@ def test_clone_parameter_passthrough():
                        return_value={}), \
             mock.patch('apps.oi.models.Revision.changeset'), \
             mock.patch('apps.oi.models.Revision.save'):
-        exclude = {'whatever'}
+        exclude = {'name'}
         data_object = mock.MagicMock()
         data_object.keywords.all.return_value.order_by.return_value = {}
         rev = OtherDummyRevision.clone(data_object=data_object,
