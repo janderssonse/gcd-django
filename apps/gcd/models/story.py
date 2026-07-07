@@ -1063,8 +1063,11 @@ class Story(GcdData):
         """
         UI check for characters.
         """
-        return self.characters or self.appearing_characters.count() or \
-            self.appearing_groups.count()
+        # len(...all()) rather than .count() so a prefetch of these relations
+        # (e.g. from Issue.shown_stories) is reused instead of a query per
+        # story; truthiness is identical.
+        return self.characters or len(self.appearing_characters.all()) or \
+            len(self.appearing_groups.all())
 
     def has_characters_order_appearance(self):
         """

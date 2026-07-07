@@ -289,7 +289,9 @@ class Issue(GcdData):
                                      'feature_object',
                                      'feature_logo__feature',
                                      'credits__creator__creator',
-                                     'credits__creator__type'))
+                                     'credits__creator__type',
+                                     'appearing_characters',
+                                     'appearing_groups'))
         cover_story = None
         if self.series.is_comics_publication or (
           self.series.has_about_comics is True and
