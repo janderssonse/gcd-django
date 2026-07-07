@@ -29,12 +29,21 @@ from .support_tables import render_publisher, DailyChangesTable
 
 from apps.gcd.svg_icons import delete_icon_in_button, edit_icon_in_button
 
+class IndexStatus(models.IntegerChoices):
+    SKELETON = 0
+    SOME_DATA = 1
+    PARTIAL = 2
+    TEN_PERCENT = 3
+    FULL = 10
+
+
+# Backwards-compatible name -> value map for existing call sites.
 INDEXED = {
-    'skeleton': 0,
-    'some_data': 1,
-    'partial': 2,
-    'ten_percent': 3,
-    'full': 10,
+    'skeleton': IndexStatus.SKELETON,
+    'some_data': IndexStatus.SOME_DATA,
+    'partial': IndexStatus.PARTIAL,
+    'ten_percent': IndexStatus.TEN_PERCENT,
+    'full': IndexStatus.FULL,
 }
 
 # 1: variant with cover artwork and cover image identical to base
@@ -191,7 +200,9 @@ class Issue(GcdData):
 
     # In production, this is a tinyint(1) because the set of numbers
     # is very small.  But syncdb produces an int(11).
-    is_indexed = models.IntegerField(default=0, db_index=True)
+    is_indexed = models.IntegerField(default=IndexStatus.SKELETON,
+                                     db_index=True,
+                                     choices=IndexStatus.choices)
 
     @property
     def indicia_image(self):

@@ -1,58 +1,43 @@
 """
-This module is just a place to define constants related to index status.
-"""
+Constants for the state of a Changeset in the indexing workflow.
 
+The canonical definition is the ``ChangesetState`` enum; the module-level
+names (``OPEN``, ``APPROVED`` ...), ``DISPLAY_NAME`` and the ``ACTIVE`` /
+``CLOSED`` groupings are kept as thin aliases so existing call sites
+(``states.OPEN``, ``states.DISPLAY_NAME`` ...) keep working unchanged.
 """
-Used in old_state field when a reservation is created.
-"""
-UNRESERVED = 99
+from django.db import models
 
-"""
-Marks an artificial reservation that needs to be replaced when the
-Log* tables are migrated.
-"""
-BASELINE = 0
 
-"""
-The reservation is open and the indexer is working on it.
-"""
-OPEN = 1
+class ChangesetState(models.IntegerChoices):
+    # In the old_state field when a reservation is created.
+    UNRESERVED = 99, 'Available'
+    # Artificial reservation, replaced when the Log* tables are migrated.
+    BASELINE = 0, 'Baseline'
+    # Open and being worked on by the indexer.
+    OPEN = 1, 'Editing'
+    # Submitted for approval, but not being examined.
+    PENDING = 2, 'Pending Review'
+    # Being discussed between indexer, approver and others.
+    DISCUSSED = 3, 'In Discussion'
+    # Being examined for approval.
+    REVIEWING = 4, 'Under Review'
+    # Approval has been granted.
+    APPROVED = 5, 'Approved'
+    # Approval was refused, no further work will be done.
+    DISCARDED = 6, 'Discarded'
 
-"""
-The reservation has been submitted for approval, but is not being examined.
-"""
-PENDING = 2
 
-"""
-The reservation is being discussed between indexer, approver and others.
-"""
-DISCUSSED = 3
+UNRESERVED = ChangesetState.UNRESERVED
+BASELINE = ChangesetState.BASELINE
+OPEN = ChangesetState.OPEN
+PENDING = ChangesetState.PENDING
+DISCUSSED = ChangesetState.DISCUSSED
+REVIEWING = ChangesetState.REVIEWING
+APPROVED = ChangesetState.APPROVED
+DISCARDED = ChangesetState.DISCARDED
 
-"""
-The change is being examined for approval.
-"""
-REVIEWING = 4
-
-"""
-Approval has been granted.
-"""
-APPROVED = 5
-
-"""
-Approval was not granted, no further work will be done.
-"""
-DISCARDED = 6
-
-DISPLAY_NAME = {
-    UNRESERVED: 'Available',
-    BASELINE: 'Baseline',
-    OPEN: 'Editing',
-    PENDING: 'Pending Review',
-    DISCUSSED: 'In Discussion',
-    REVIEWING: 'Under Review',
-    APPROVED: 'Approved',
-    DISCARDED: 'Discarded',
-}
+DISPLAY_NAME = {state.value: state.label for state in ChangesetState}
 
 ACTIVE = (OPEN, PENDING, DISCUSSED, REVIEWING)
 

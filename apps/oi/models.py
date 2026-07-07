@@ -64,48 +64,53 @@ LANGUAGE_STATS = ['de']
 
 MONTH_CHOICES = [(i, calendar.month_name[i]) for i in range(1, 13)]
 
-# Changeset type "constants"
-CTYPES = {
-    'unknown': 0,
-    'publisher': 1,
-    'brand': 2,
-    'indicia_publisher': 3,
-    'series': 4,
-    'issue_add': 5,
-    'issue': 6,
-    'cover': 7,
-    'issue_bulk': 8,
-    'variant_add': 9,
-    'two_issues': 10,
-    'reprint': 11,
-    'image': 12,
-    'brand_group': 13,
-    'brand_use': 14,
-    'series_bond': 15,
-    'creator': 16,
-    'creator_art_influence': 17,
-    'received_award': 18,
-    'creator_degree': 19,
-    'creator_membership': 20,
-    'creator_non_comic_work': 21,
-    'creator_relation': 22,
-    'creator_school': 23,
-    'award': 24,
-    'feature': 25,
-    'feature_logo': 26,
-    'feature_relation': 27,
-    'printer': 28,
-    'indicia_printer': 29,
-    'creator_signature': 30,
-    'character': 31,
-    'group': 32,
-    'group_membership': 33,
-    'character_relation': 34,
-    'group_relation': 35,
-    'universe': 36,
-    'story_arc': 37,
-    'story_arc_relation': 38
-}
+# Changeset type. ChangeType is the canonical definition; CTYPES is kept
+# as a backwards-compatible name -> value map for the many existing call
+# sites (CTYPES['issue'] etc.).
+class ChangeType(models.IntegerChoices):
+    UNKNOWN = 0
+    PUBLISHER = 1
+    BRAND = 2
+    INDICIA_PUBLISHER = 3
+    SERIES = 4
+    ISSUE_ADD = 5
+    ISSUE = 6
+    COVER = 7
+    ISSUE_BULK = 8
+    VARIANT_ADD = 9
+    TWO_ISSUES = 10
+    REPRINT = 11
+    IMAGE = 12
+    BRAND_GROUP = 13
+    BRAND_USE = 14
+    SERIES_BOND = 15
+    CREATOR = 16
+    CREATOR_ART_INFLUENCE = 17
+    RECEIVED_AWARD = 18
+    CREATOR_DEGREE = 19
+    CREATOR_MEMBERSHIP = 20
+    CREATOR_NON_COMIC_WORK = 21
+    CREATOR_RELATION = 22
+    CREATOR_SCHOOL = 23
+    AWARD = 24
+    FEATURE = 25
+    FEATURE_LOGO = 26
+    FEATURE_RELATION = 27
+    PRINTER = 28
+    INDICIA_PRINTER = 29
+    CREATOR_SIGNATURE = 30
+    CHARACTER = 31
+    GROUP = 32
+    GROUP_MEMBERSHIP = 33
+    CHARACTER_RELATION = 34
+    GROUP_RELATION = 35
+    UNIVERSE = 36
+    STORY_ARC = 37
+    STORY_ARC_RELATION = 38
+
+
+CTYPES = {change_type.name.lower(): change_type.value
+          for change_type in ChangeType}
 
 CTYPES_INLINE = frozenset((CTYPES['publisher'],
                            CTYPES['brand'],
@@ -285,7 +290,8 @@ def _imps_for_years(revision, field_name, year_began, year_ended):
 
 class Changeset(models.Model):
 
-    state = models.IntegerField(db_index=True)
+    state = models.IntegerField(db_index=True,
+                                choices=states.ChangesetState.choices)
 
     indexer = models.ForeignKey('auth.User', on_delete=models.CASCADE,
                                 db_index=True,
@@ -302,7 +308,8 @@ class Changeset(models.Model):
                                  related_name='approved_%(class)s', null=True)
 
     # In production, change_type is a tinyint(2) due to the small value set.
-    change_type = models.IntegerField(db_index=True)
+    change_type = models.IntegerField(db_index=True,
+                                      choices=ChangeType.choices)
     migrated = models.BooleanField(default=False, db_index=True)
     date_inferred = models.BooleanField(default=False)
 

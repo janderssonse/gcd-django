@@ -10,7 +10,7 @@ from .publisher import Publisher, IndiciaPublisher, Brand, BrandGroup, \
                        BrandUse, Printer, IndiciaPrinter
 from .series import Series, SeriesPublicationType
 from .issue import Issue, IssueCredit, CodeNumberType, PublisherCodeNumber, \
-                   INDEXED, VARIANT_COVER_STATUS, VCS_Codes
+                   INDEXED, IndexStatus, VARIANT_COVER_STATUS, VCS_Codes
 from .story import StoryType, Story, CreditType, StoryCredit, BiblioEntry,\
                    StoryCharacter, CharacterRole, StoryGroup, StoryArc, \
                    StoryArcRelationType, StoryArcRelation, \
