@@ -190,6 +190,10 @@ from apps.oi.views.character import (  # noqa: F401
 from apps.oi.views.mentoring import (  # noqa: F401
     contacting, mentoring)
 
+# ongoing views (roadmap C1), re-exported for the stable import surface.
+from apps.oi.views.ongoing import (  # noqa: F401
+    ongoing, delete_ongoing)
+
 ##############################################################################
 # Bulk Changes
 ##############################################################################
@@ -1978,59 +1982,6 @@ def toggle_delete_story_revision(request, id):
 # Ongoing Reservations
 ##############################################################################
 
-
-@permission_required('indexer.can_reserve')
-def ongoing(request, user_id=None):
-    """
-    Handle the ongoing reservation, process the request and form and
-    return with error or success message as appropriate.
-    """
-    if request.method != 'POST':
-        return _cant_get(request)
-
-    if request.user.ongoing_reservations.count() >= \
-       request.user.indexer.max_ongoing:
-        return render_error(
-          request, 'You have reached the maximum number of '
-          'ongoing reservations you can hold at this time.  If you are a new '
-          'user this number is very low or even zero, but will increase as '
-          'your first few changes are approved.',
-          redirect=False)
-
-    series = get_object_or_404(Series, id=request.POST['series'])
-    if series.deleted or series.pending_deletion():
-        return render_error(
-          request, 'Cannot reserve issues '
-          'since "%s" is deleted or pending deletion.' % series)
-
-    if request.method == 'POST':
-        form = OngoingReservationForm(request.POST)
-        if form.is_valid():
-            reservation = form.save(commit=False)
-            reservation.indexer = request.user
-            reservation.save()
-            return HttpResponseRedirect(urlresolvers.reverse(
-              'show_series', kwargs={'series_id': reservation.series.id}))
-        else:
-            return render_error(
-              request, 'Something went wrong while reserving'
-              ' the series. Please contact us if this error persists.')
-
-
-def delete_ongoing(request, series_id):
-    if request.method != 'POST':
-        return render_error(
-          request,
-          'You must access this page through the proper form.')
-    reservation = get_object_or_404(OngoingReservation, series=series_id)
-    if request.user != reservation.indexer:
-        return render_error(
-          request,
-          'Only the reservation holder may delete the reservation.')
-    series = reservation.series
-    reservation.delete()
-    return HttpResponseRedirect(urlresolvers.reverse(
-      'show_series', kwargs={'series_id': series.id}))
 
 ##############################################################################
 # Reordering
