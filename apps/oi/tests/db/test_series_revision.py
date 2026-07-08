@@ -47,7 +47,7 @@ def test_commit_added_revision(any_added_series_rev, series_add_values,
     # Simple version of this for mocking.  Real article testing elsewhere.
     sort_name = rev.name[rev.name.index(' ') + 1:]
     with mock.patch(UPDATE_ALL) as updater, \
-            mock.patch('apps.oi.models.remove_leading_article') as remover, \
+            mock.patch('apps.oi.models.series.remove_leading_article') as remover, \
             mock.patch('apps.oi.models.IssueRevision') as ir_class, \
             mock.patch('apps.oi.models.SeriesRevision.save') as save:
 
@@ -95,7 +95,7 @@ def test_commit_add_rev_no_leading_article(any_added_series_rev):
     rev.save()
 
     with mock.patch(UPDATE_ALL), \
-            mock.patch('apps.oi.models.remove_leading_article') as remover:
+            mock.patch('apps.oi.models.series.remove_leading_article') as remover:
         # Not testing actual remover logic here, just that it's not called.
         remover.return_value = rev.name
         rev.commit_to_display()
@@ -204,7 +204,7 @@ def test_create_edit_revision(any_added_series, series_add_values,
                               any_editing_changeset, keywords):
     # Simple version of this for mocking.  Real article testing elsewhere.
     sort_name = any_added_series.name[any_added_series.name.index(' ') + 1:]
-    with mock.patch('apps.oi.models.remove_leading_article') as remover:
+    with mock.patch('apps.oi.models.series.remove_leading_article') as remover:
         remover.return_value = sort_name
         rev = SeriesRevision.clone(data_object=any_added_series,
                                    changeset=any_editing_changeset)
