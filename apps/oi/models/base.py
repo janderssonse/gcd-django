@@ -90,6 +90,7 @@ __all__ = [
     '_removed_related_objects', '_process_formset',
     'Changeset', 'ChangesetComment', 'RevisionLock', 'RevisionManager',
     'RevisionQuerySet', 'Revision', 'OngoingReservation',
+    'ExternalLinkRevision',
 ]
 
 # Changeset type. ChangeType is the canonical definition; CTYPES is kept
@@ -2456,7 +2457,6 @@ class Revision(models.Model):
         creates the corresponding revisions.
         """
         if hasattr(self.source, 'external_link'):
-            from apps.oi.models import ExternalLinkRevision
             for external_link in self.source.external_link.all():
                 external_link_lock = _get_revision_lock(
                   external_link, changeset=self.changeset)
@@ -2521,5 +2521,74 @@ class OngoingReservation(models.Model):
 
     def __str__(self):
         return '%s reserved by %s' % (self.series, self.indexer.indexer)
+
+
+class ExternalLinkRevision(Revision):
+    """
+    Revision for recording the links for a data object.
+
+    Generic (attaches to any data object via a content-type link and is
+    referenced by many entity revisions through a GenericRelation), so it
+    lives in the base layer alongside the Revision machinery.
+    """
+
+    class Meta:
+        db_table = 'oi_external_link_revision'
+        ordering = ['created', '-id']
+        verbose_name_plural = 'External Link Revisions'
+
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE,
+                                     null=True)
+    object_id = models.IntegerField(db_index=True, null=True)
+    object_revision = GenericForeignKey('content_type', 'object_id')
+
+    external_link = models.ForeignKey('gcd.ExternalLink',
+                                      on_delete=models.CASCADE,
+                                      related_name='revisions',
+                                      null=True)
+    site = models.ForeignKey(
+      'gcd.ExternalSite', on_delete=models.CASCADE,
+      help_text='External site, links to its pages that are directly related'
+                ' to this record can be added.')
+    link = models.URLField(max_length=2000)
+
+    source_name = 'external_link'
+    source_class = ExternalLink
+
+    @property
+    def source(self):
+        return self.external_link
+
+    @source.setter
+    def source(self, value):
+        self.external_link = value
+
+    def _field_list(self):
+        return ['site', 'link']
+
+    def _get_blank_values(self):
+        return {
+            'site': '',
+            'link': '',
+        }
+
+    def _imps_for(self, field_name):
+        return 1
+
+    def _do_complete_added_revision(self, content_type, object_id):
+        self.content_type = content_type
+        self.object_id = object_id
+
+    def _pre_initial_save(self, fork=False, fork_source=None,
+                          exclude=frozenset(), **kwargs):
+        self.object_revision = kwargs['object_revision']
+
+    def _post_save_object(self, changes):
+        source_object = self.object_revision.source
+        source_object.external_link.add(self.source)
+
+    def __str__(self):
+        return '%s - %s' % (str(self.site),
+                            self.link)
 
 
