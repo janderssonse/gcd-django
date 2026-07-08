@@ -199,7 +199,7 @@ def generic_sortable_list(request, items, table, template, context,
     export_format = request.GET.get("_export", None)
     if TableExport.is_valid_format(export_format):
         exporter = TableExport(export_format, table)
-        return exporter.response("table.{}".format(export_format))
+        return exporter.response(f"table.{export_format}")
     if export_format and export_format in ['db_csv', 'db_json']:
         fields = [f.name for f in items.model._meta.get_fields()
                   if f.auto_created is False]

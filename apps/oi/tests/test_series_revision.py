@@ -2,7 +2,7 @@
 
 
 import pytest
-import mock
+from unittest import mock
 
 from apps.gcd.models import Publisher, Series, Issue
 from apps.oi.models import Changeset, Revision, SeriesRevision, IssueRevision

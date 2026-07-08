@@ -18,8 +18,14 @@ extend-exclude = [
 
 [tool.ruff.lint]
 # Start from ruff's defaults (pyflakes + a pycodestyle subset) and tighten
-# over time.
-select = ["E4", "E7", "E9", "F", "W"]
+# over time. The UP* codes below are the pyupgrade rules whose whole codebase
+# was fixed (roadmap B4); enforced so new/rebased code can't regress them.
+# Deferred: UP008 (super()) is ruff-"unsafe", UP009 (utf-8 decl) is 94-file
+# cosmetic churn, UP031 (%-format -> f-string, ~1400 sites) is a large churny
+# sweep at odds with the periodic-rebase model -- do those opportunistically.
+select = ["E4", "E7", "E9", "F", "W",
+          "UP004", "UP015", "UP018", "UP024", "UP025", "UP026", "UP030",
+          "UP032", "UP034"]
 # Baseline of pre-existing findings, to be ratcheted down. F401 needs a
 # manual pass since imports can register signals or template tags.
 ignore = ["F401", "E711", "E722", "E731", "E741", "F841"]

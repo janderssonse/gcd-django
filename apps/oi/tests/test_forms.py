@@ -2,7 +2,7 @@
 
 
 import re
-import mock
+from unittest import mock
 import pytest
 
 from django.forms import ValidationError

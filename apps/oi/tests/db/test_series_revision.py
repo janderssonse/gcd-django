@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import pytest
-import mock
+from unittest import mock
 
 from apps.gcd.models import Publisher
 from apps.oi.models import SeriesRevision, IssueRevision

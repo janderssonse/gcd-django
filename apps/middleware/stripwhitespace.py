@@ -14,7 +14,7 @@ Modified regex to strip leading/trailing white space from every line, not just t
 
 import re
 
-class StripWhitespaceMiddleware(object):
+class StripWhitespaceMiddleware:
     """
     Strips leading and trailing whitespace from response content.
     """

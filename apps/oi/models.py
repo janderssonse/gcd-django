@@ -222,15 +222,15 @@ def remove_leading_article(name):
 def on_sale_date_as_string(issue):
     date = ''
     if issue.year_on_sale:
-        date += '{0:?<4d}'.format(issue.year_on_sale)
+        date += f'{issue.year_on_sale:?<4d}'
     elif issue.day_on_sale or issue.month_on_sale:
         date += '????'
     if issue.month_on_sale:
-        date += '-{0:02d}'.format(issue.month_on_sale)
+        date += f'-{issue.month_on_sale:02d}'
     elif issue.day_on_sale:
         date += '-??'
     if issue.day_on_sale:
-        date += '-{0:02d}'.format(issue.day_on_sale)
+        date += f'-{issue.day_on_sale:02d}'
     return date
 
 
@@ -2757,7 +2757,7 @@ class IndiciaPublisherRevision(PublisherRevisionBase):
         fields.extend(PublisherRevisionBase._field_list(self))
         fields.insert(fields.index('url'), 'is_surrogate')
         fields.insert(fields.index('url'), 'country')
-        fields.append(('parent'))
+        fields.append('parent')
         return fields
 
     def _get_blank_values(self):
@@ -3172,7 +3172,7 @@ class IndiciaPrinterRevision(PublisherRevisionBase):
         fields = []
         fields.extend(PublisherRevisionBase._field_list(self))
         fields.insert(fields.index('url'), 'country')
-        fields.append(('parent'))
+        fields.append('parent')
         return fields
 
     def _get_blank_values(self):

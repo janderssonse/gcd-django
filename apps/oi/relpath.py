@@ -2,7 +2,7 @@
 
 
 
-class RelPath(object):
+class RelPath:
     """
     Represents a sequence of model attributes to access related fields/objects.
 

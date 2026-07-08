@@ -257,13 +257,13 @@ def main(*args):
     filename = args[0]
     try:
         dumpfile_issues = open(filename + '_issues.tsv', 'wb')
-    except (IOError, OSError) as e:
+    except OSError as e:
         logging.error("Error opening output file '%s': %s" % (filename,
                                                               e.strerror))
         sys.exit(-1)
     try:
         dumpfile_sequences = open(filename + '_sequences.tsv', 'wb')
-    except (IOError, OSError) as e:
+    except OSError as e:
         logging.error("Error opening output file '%s': %s" % (filename,
                                                               e.strerror))
         sys.exit(-1)

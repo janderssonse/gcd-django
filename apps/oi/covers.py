@@ -393,7 +393,7 @@ def process_edited_gatefold_cover(request):
     destination_name = os.path.join(upload_dir, scan_name)
     try:  # essentially only needed at beginning of the month
         check_cover_dir(upload_dir)
-    except IOError:
+    except OSError:
         changeset.delete()
         error_text = "Problem with file storage for uploaded " + \
                      "cover, please report an error."
@@ -477,7 +477,7 @@ def handle_uploaded_cover(request, cover, issue, variant=False,
             form = UploadVariantScanForm(request.POST, request.FILES)
         else:
             form = UploadScanForm(request.POST, request.FILES)
-    except IOError:  # sometimes uploads misbehave. connection dropped ?
+    except OSError:  # sometimes uploads misbehave. connection dropped ?
         error_text = 'Something went wrong with the upload. ' + \
                         'Please <a href="' + request.path + '">try again</a>.'
         return render_error(request, error_text, redirect=False,
@@ -570,7 +570,7 @@ def handle_uploaded_cover(request, cover, issue, variant=False,
     destination_name = os.path.join(upload_dir, scan_name)
     try:  # essentially only needed at beginning of the month
         check_cover_dir(upload_dir)
-    except IOError:
+    except OSError:
         changeset.delete()
         error_text = "Problem with file storage for uploaded " + \
                      "cover, please report an error."
@@ -609,7 +609,7 @@ def handle_uploaded_cover(request, cover, issue, variant=False,
             return _display_cover_upload_form(
               request, form, cover, issue,
               info_text=info_text, variant=variant)
-    except IOError:
+    except OSError:
         # just in case, django *should* have taken care of file type
         changeset.delete()
         os.remove(destination.name)
@@ -887,7 +887,7 @@ def handle_uploaded_image(request, display_obj, model_name, image_type,
 
     try:
         form = UploadImageForm(request.POST, request.FILES)
-    except IOError:  # sometimes uploads misbehave. connection dropped ?
+    except OSError:  # sometimes uploads misbehave. connection dropped ?
         error_text = 'Something went wrong with the upload. ' + \
                         'Please <a href="' + request.path + '">try again</a>.'
         return render_error(request, error_text, redirect=False, is_safe=True)

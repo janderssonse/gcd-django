@@ -25,7 +25,7 @@ def get_field(instance, field):
     return attr
 
 
-class AlphaPaginator(object):
+class AlphaPaginator:
     """Pagination for string-based objects"""
 
     def __init__(self, queryset, per_page=25, orphans=0,
@@ -103,7 +103,7 @@ class AlphaPaginator(object):
         return len(self.page_range)
 
 
-class NamePage(object):
+class NamePage:
     def __init__(self, paginator):
         self.paginator = paginator
         self.object_list = []

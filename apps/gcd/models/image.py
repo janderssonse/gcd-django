@@ -41,7 +41,7 @@ class CreatorCropToFace(ImageSpec):
 register.generator('creator:portrait_face', CreatorCropToFace)
 
 
-class CropToFace(object):
+class CropToFace:
     def process(self, image):
         image = convert_from_image_to_cv2(image)
         while image.shape[0] > 2000 or image.shape[1] > 2000:

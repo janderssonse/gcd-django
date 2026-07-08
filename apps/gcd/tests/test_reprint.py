@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import mock
+from unittest import mock
 import pytest
 
 from django.utils.html import conditional_escape as esc

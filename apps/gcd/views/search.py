@@ -2249,7 +2249,7 @@ def search_stories(data, op):
                   .values_list('id', flat=True))
                 if (stories):
                     linked_credits_q_objs.append(
-                      (Q(**{'%sid__in' % (prefix): stories}))
+                      Q(**{'%sid__in' % (prefix): stories})
                     )
 
     if data['story_editing']:
@@ -2268,7 +2268,7 @@ def search_stories(data, op):
           .values_list('id', flat=True))
         if (stories):
             linked_credits_q_objs.append(
-                (Q(**{'%sid__in' % (prefix): stories}))
+                Q(**{'%sid__in' % (prefix): stories})
             )
 
     for field in ('title', 'first_line', 'job_number', 'characters',
@@ -2351,10 +2351,10 @@ def search_stories(data, op):
             issues = [-1]  # force no match
         if issues:
             if target == 'sequence':  # no prefix in this case
-                linked_credits_q_objs.append((Q(**{'issue__id__in': issues})))
+                linked_credits_q_objs.append(Q(**{'issue__id__in': issues}))
             else:  # cut off 'story__'
-                linked_credits_q_objs.append((Q(**{'%sid__in' % (prefix[:-7]):
-                                                issues})))
+                linked_credits_q_objs.append(Q(**{'%sid__in' % (prefix[:-7]):
+                                                issues}))
 
         if target == 'sequence':  # no prefix in this case
             text_credits_q_objs.append(Q(**{'issue__editing__%s' % op:

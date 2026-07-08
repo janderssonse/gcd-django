@@ -2,7 +2,7 @@
 
 
 
-import mock
+from unittest import mock
 import pytest
 
 from apps.gcd.models import Story, Issue, Series

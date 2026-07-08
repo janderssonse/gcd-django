@@ -2,7 +2,7 @@
 
 
 
-import mock
+from unittest import mock
 import pytest
 
 from apps.gcd.models.gcddata import GcdBase, GcdData, GcdLink

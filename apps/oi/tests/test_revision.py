@@ -2,7 +2,7 @@
 
 
 
-import mock
+from unittest import mock
 import pytest
 
 from apps.oi.models import Revision, RevisionManager, Changeset

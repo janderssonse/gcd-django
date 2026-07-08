@@ -11,7 +11,7 @@ def get_generic_image_tag(image, alt_text):
     img_class = 'cover_img'
     try:
         width = min(image.image_file.width, 400)
-    except IOError:
+    except OSError:
         width = 0
     return mark_safe('<img src="' + image.scaled_image.url + '?' +
                      str(hash(image.modified)) + '" alt="' + esc(alt_text)

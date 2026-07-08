@@ -44,7 +44,7 @@ from .support import (GENERIC_ERROR_MESSAGE, CREATOR_MEMBERSHIP_HELP_TEXTS,
 # https://stackoverflow.com/questions/65833714/how-to-remove-accents-from-a-string-in-python
 def remove_diacritics(input_str):
     nfkd_form = ucd.normalize('NFKD', input_str)
-    return u"".join([c for c in nfkd_form if not ucd.combining(c)])
+    return "".join([c for c in nfkd_form if not ucd.combining(c)])
 
 
 def _generic_data_source_clean(form, cd, field=''):

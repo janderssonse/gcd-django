@@ -73,7 +73,7 @@ class SeriesBond(models.Model):
 
 
 @total_ordering
-class SeriesRelativeBond(object):
+class SeriesRelativeBond:
     """
     Proxy for SeriesBond from the perspective of one of the series involved.
 

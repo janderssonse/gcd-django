@@ -105,7 +105,7 @@ def index(request):
     return render(request, 'gcd/tw_index.html', template_vars)
 
 
-class ResponsePaginator(object):
+class ResponsePaginator:
     """
     Uses DiggPaginator from
     http://bitbucket.org/miracle2k/djutils/src/tip/djutils/pagination.py.

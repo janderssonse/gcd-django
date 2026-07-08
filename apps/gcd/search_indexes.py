@@ -9,7 +9,7 @@ from apps.gcd.models import Issue, Series, Story, Publisher, IndiciaPublisher,\
 from apps.oi.models import on_sale_date_fields
 
 
-class ObjectIndex(object):
+class ObjectIndex:
     # def index_queryset(self, using=None):
     #     """ Used when populating the queryset with db models """
     #     """Used when the entire index for model is updated."""
