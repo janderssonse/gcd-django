@@ -172,6 +172,11 @@ from apps.oi.views.creator import (  # noqa: F401
     add_creator_school, add_creator_degree, add_creator_membership,
     add_creator_art_influence, add_creator_non_comic_work)
 
+# award views (roadmap C1), re-exported for the stable import surface.
+from apps.oi.views.award import (  # noqa: F401
+    add_award, add_creator_award, add_received_award,
+    process_award_recipient, select_award_recipient)
+
 ##############################################################################
 # Bulk Changes
 ##############################################################################
@@ -2452,155 +2457,6 @@ def mentoring(request):
         'max_show_new': max_show_new,
         'queue_name': 'mentoring',
       })
-
-
-@permission_required('indexer.can_reserve')
-def add_award(request):
-    return add_generic(request, 'award')
-
-
-@permission_required('indexer.can_reserve')
-def add_creator_award(request, creator_id):
-    if not request.user.indexer.can_reserve_another():
-        return render_error(request, REACHED_CHANGE_LIMIT)
-
-    creator = get_object_or_404(Creator, id=creator_id, deleted=False)
-
-    if creator.pending_deletion():
-        return render_error(request, 'Cannot add Award for '
-                                     'creator "%s" since the record is '
-                                     'pending deletion.' % creator)
-
-    if request.method == 'GET':
-        award_form = ReceivedAwardRevisionForm()
-
-    elif request.method == 'POST':
-        if 'cancel' in request.POST:
-            return HttpResponseRedirect(urlresolvers.reverse(
-                    'show_creator', kwargs={'creator_id': creator_id}))
-
-        award_form = ReceivedAwardRevisionForm(
-                request.POST or None,
-                request.FILES or None,
-        )
-        if award_form.is_valid():
-            changeset = Changeset(indexer=request.user, state=states.OPEN,
-                                  change_type=CTYPES['received_award'])
-            changeset.save()
-            revision = award_form.save(commit=False)
-            revision.save_added_revision(
-              changeset=changeset,
-              recipient=creator,
-              award=award_form.cleaned_data['award'])
-            revision.save()
-
-            process_data_source(award_form, '', changeset,
-                                sourced_revision=revision)
-
-            return submit(request, changeset.id)
-
-    context = {'form': award_form,
-               'object_name': 'Award of a Creator',
-               'object_url': urlresolvers.reverse('add_creator_award',
-                                                  kwargs={'creator_id':
-                                                          creator_id}),
-               'action_label': 'Submit new',
-               'settings': settings}
-    return oi_render(request, 'oi/edit/add_frame.html', context)
-
-
-@permission_required('indexer.can_reserve')
-def add_received_award(request, award_id, model_name, id):
-    award = get_object_or_404(Award, id=award_id)
-
-    if award.pending_deletion():
-        return render_error(request, 'Cannot add to Award "%s" since the '
-                                     'record is pending deletion.' % award)
-
-    if request.method == 'POST' and 'cancel' in request.POST:
-        return HttpResponseRedirect(urlresolvers.reverse('show_award',
-                                    kwargs={'award_id': award_id}))
-
-    form = get_received_award_revision_form(user=request.user)(request.POST
-                                                               or None)
-
-    if model_name == 'story':
-        selected_object = get_object_or_404(Story, id=id)
-    elif model_name == 'issue':
-        selected_object = get_object_or_404(Issue, id=id)
-    elif model_name == 'series':
-        selected_object = get_object_or_404(Series, id=id)
-    else:
-        raise NotImplementedError
-
-    if form.is_valid():
-        changeset = Changeset(indexer=request.user, state=states.OPEN,
-                              change_type=CTYPES['received_award'])
-        changeset.save()
-        revision = form.save(commit=False)
-        revision.save_added_revision(changeset=changeset,
-                                     recipient=selected_object,
-                                     award=award)
-        revision.save()
-
-        process_data_source(form, '', changeset,
-                            sourced_revision=revision)
-
-        return submit(request, changeset.id)
-
-    extra_adding_info = 'the Award: %s for %s: %s' % (award,
-                                                      model_name.capitalize(),
-                                                      selected_object)
-
-    return oi_render(
-      request,
-      'oi/edit/add_frame.html',
-      {'action_label': 'Submit new received award',
-       'form': form,
-       'extra_adding_info': extra_adding_info,
-       'object_url': urlresolvers.reverse('add_received_award',
-                                          kwargs={'award_id': award.id,
-                                                  'model_name': model_name,
-                                                  'id': selected_object.id}),
-       })
-
-
-@permission_required('indexer.can_reserve')
-def process_award_recipient(request, data, object_type, selected_id):
-    if request.method != 'POST':
-        return _cant_get(request)
-    if 'cancel' in request.POST:
-        return HttpResponseRedirect(
-          urlresolvers.reverse('show_award',
-                               kwargs={'id': data['award_id']}))
-
-    return HttpResponseRedirect(
-      urlresolvers.reverse('add_received_award',
-                           kwargs={'award_id': data['award_id'],
-                                   'model_name': object_type,
-                                   'id': selected_id}))
-
-
-@permission_required('indexer.can_reserve')
-def select_award_recipient(request, award_id):
-    if not request.user.indexer.can_reserve_another():
-        return render_error(request, REACHED_CHANGE_LIMIT)
-
-    award = get_object_or_404(Award, id=award_id)
-    heading = 'Select recipient for an %s award' % (esc(award))
-
-    data = {'award_id': award_id,
-            'story': True,
-            'issue': True,
-            'series': True,
-            'heading': mark_safe('<h2>%s</h2>' % heading),
-            'target': 'a story, issue, or series',
-            'return': 'process_award_recipient',
-            'cancel': urlresolvers.reverse('show_award',
-                                           kwargs={'award_id': award_id})}
-    select_key = store_select_data(request, None, data)
-    return HttpResponseRedirect(urlresolvers.reverse('select_object',
-                                kwargs={'select_key': select_key}))
 
 
 @permission_required('indexer.can_reserve')
