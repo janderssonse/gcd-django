@@ -181,8 +181,10 @@ class Issue(GcdData):
 
     keywords = TaggableManager()
 
-    # Series and publisher links
-    series = models.ForeignKey('Series', on_delete=models.CASCADE)
+    # Series and publisher links. PROTECT (not CASCADE): removal is via the
+    # soft-delete flag; a stray hard delete of a series must not wipe its
+    # issues.
+    series = models.ForeignKey('Series', on_delete=models.PROTECT)
     indicia_publisher = models.ForeignKey(IndiciaPublisher,
                                           on_delete=models.CASCADE, null=True)
     indicia_pub_not_printed = models.BooleanField(default=False)

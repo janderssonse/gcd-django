@@ -107,8 +107,10 @@ class Series(GcdData):
     country = models.ForeignKey(Country, on_delete=models.CASCADE)
     language = models.ForeignKey(Language, on_delete=models.CASCADE)
 
-    # Fields related to the publishers table.
-    publisher = models.ForeignKey(Publisher, on_delete=models.CASCADE)
+    # Fields related to the publishers table. PROTECT (not CASCADE): the
+    # intended removal path is the soft-delete flag; a stray hard delete of a
+    # publisher must not silently wipe its whole series/issue subtree.
+    publisher = models.ForeignKey(Publisher, on_delete=models.PROTECT)
 
     def has_tracking(self):
         return self.tracking_notes or self.has_series_bonds()

@@ -921,8 +921,9 @@ class Story(GcdData):
 
     awards = GenericRelation(ReceivedAward)
 
-    # Fields from issue.
-    issue = models.ForeignKey('Issue', on_delete=models.CASCADE)
+    # Fields from issue. PROTECT (not CASCADE): removal is via the soft-delete
+    # flag; a stray hard delete of an issue must not wipe its stories.
+    issue = models.ForeignKey('Issue', on_delete=models.PROTECT)
 
     @property
     def from_reprints(self):
