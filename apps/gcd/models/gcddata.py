@@ -90,9 +90,16 @@ class GcdData(GcdBase):
     deleted = models.BooleanField(default=False, db_index=True)
 
     def has_keywords(self):
+        # On a preview of an unsaved revision `keywords` is still the raw
+        # '; '-joined string (tags are only materialised on commit), so guard
+        # the manager access here and in display_keywords below.
+        if isinstance(self.keywords, str):
+            return bool(self.keywords)
         return self.keywords.exists()
 
     def display_keywords(self):
+        if isinstance(self.keywords, str):
+            return self.keywords
         return '; '.join([keyword.name for keyword in self.keywords.all()])
 
     def delete(self):
