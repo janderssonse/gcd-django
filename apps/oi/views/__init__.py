@@ -177,6 +177,10 @@ from apps.oi.views.award import (  # noqa: F401
     add_award, add_creator_award, add_received_award,
     process_award_recipient, select_award_recipient)
 
+# feature views (roadmap C1), re-exported for the stable import surface.
+from apps.oi.views.feature import (  # noqa: F401
+    add_feature, add_feature_logo, add_feature_relation)
+
 ##############################################################################
 # Bulk Changes
 ##############################################################################
@@ -244,106 +248,6 @@ from apps.oi.views.award import (  # noqa: F401
 
 
 
-
-
-def add_feature(request):
-    return add_generic(request, 'feature')
-
-
-@permission_required('indexer.can_reserve')
-def add_feature_logo(request, feature_id):
-    if not request.user.indexer.can_reserve_another():
-        return render_error(request, REACHED_CHANGE_LIMIT)
-
-    feature = get_object_or_404(Feature, id=feature_id, deleted=False)
-
-    if feature.pending_deletion():
-        return render_error(
-          request,
-          'Cannot add a feature logo since "%s" is pending deletion.'
-          % feature)
-
-    if request.method == 'POST' and 'cancel' in request.POST:
-        return HttpResponseRedirect(urlresolvers.reverse(
-          'show_feature', kwargs={'feature_id': feature_id}))
-
-    initial = {'feature': feature}
-    form = get_feature_logo_revision_form(
-      user=request.user)(request.POST or None,
-                         request.FILES or None,
-                         initial=initial)
-
-    if form.is_valid():
-        changeset = Changeset(indexer=request.user, state=states.OPEN,
-                              change_type=CTYPES['feature_logo'])
-        changeset.save()
-        revision = form.save(commit=False)
-        revision.save_added_revision(changeset=changeset)
-        form.save_m2m()
-        # TODO make generic
-        if revision.image_revision:
-            revision.image_revision.changeset = changeset
-            revision.image_revision.object_id = revision.id
-            revision.image_revision.content_type = ContentType\
-                                   .objects.get_for_model(revision)
-            revision.image_revision.save()
-
-        return submit(request, changeset.id)
-
-    object_name = 'Feature Logo'
-    object_url = urlresolvers.reverse('add_feature_logo',
-                                      kwargs={'feature_id': feature.id})
-
-    return oi_render(
-      request, 'oi/edit/add_frame.html',
-      {
-        'object_name': object_name,
-        'object_url': object_url,
-        'action_label': 'Submit new',
-        'form': form,
-      })
-
-
-@permission_required('indexer.can_reserve')
-def add_feature_relation(request, feature_id):
-    if not request.user.indexer.can_reserve_another():
-        return render_error(request, REACHED_CHANGE_LIMIT)
-
-    feature = get_object_or_404(Feature, id=feature_id, deleted=False)
-
-    if feature.pending_deletion():
-        return render_error(request, 'Cannot add Relation for '
-                                     'feature "%s" since the record is '
-                                     'pending deletion.' % feature)
-
-    if request.method == 'POST' and 'cancel' in request.POST:
-        return HttpResponseRedirect(urlresolvers.reverse(
-                'show_feature', kwargs={'feature_id': feature_id}))
-
-    initial = {}
-    initial['from_feature'] = feature
-    relation_form = get_feature_relation_revision_form(
-      user=request.user)(request.POST or None, initial=initial)
-
-    if relation_form.is_valid():
-        changeset = Changeset(indexer=request.user, state=states.OPEN,
-                              change_type=CTYPES['feature_relation'])
-        changeset.save()
-
-        revision = relation_form.save(commit=False)
-        revision.save_added_revision(changeset=changeset, feature=feature)
-        revision.save()
-
-        return submit(request, changeset.id)
-
-    context = {'form': relation_form,
-               'object_name': 'Relation with Feature',
-               'object_url': urlresolvers.reverse('add_feature_relation',
-                                                  kwargs={'feature_id':
-                                                          feature_id}),
-               'action_label': 'Submit new',
-               'settings': settings}
-    return oi_render(request, 'oi/edit/add_frame.html', context)
 
 
 def add_story_arc(request):
