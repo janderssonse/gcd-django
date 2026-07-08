@@ -186,6 +186,10 @@ from apps.oi.views.character import (  # noqa: F401
     add_universe, add_character, add_character_relation, add_group,
     add_group_relation, add_group_membership, add_group_member)
 
+# mentoring views (roadmap C1), re-exported for the stable import surface.
+from apps.oi.views.mentoring import (  # noqa: F401
+    contacting, mentoring)
+
 ##############################################################################
 # Bulk Changes
 ##############################################################################
@@ -2145,49 +2149,6 @@ def reorder_characters(request, character_order_id):
 ##############################################################################
 # Mentoring
 ##############################################################################
-
-
-@permission_required('indexer.can_contact')
-def contacting(request):
-    users = User.objects.filter(indexer__opt_in_email=True) \
-                           .filter(is_active=True) \
-                           .order_by('-date_joined') \
-                           .select_related('indexer__country')
-
-    return oi_render(
-      request, 'oi/queues/contacting.html',
-      {
-        'users': users,
-      })
-
-
-@permission_required('indexer.can_mentor')
-def mentoring(request):
-    max_show_new = 50
-    new_indexers = User.objects.filter(indexer__mentor=None) \
-                       .filter(indexer__is_new=True) \
-                       .filter(is_active=True) \
-                       .order_by('-date_joined') \
-                       .select_related('indexer__country')[:max_show_new]
-    my_mentees = User.objects.filter(indexer__mentor=request.user) \
-                             .filter(indexer__is_new=True) \
-                             .select_related('indexer__country')
-    mentees = User.objects.exclude(indexer__mentor=None) \
-                          .filter(indexer__is_new=True) \
-                          .exclude(indexer__mentor=request.user) \
-                          .order_by('date_joined') \
-                          .select_related('indexer__mentor__indexer',
-                                          'indexer__country')
-
-    return oi_render(
-      request, 'oi/queues/mentoring.html',
-      {
-        'new_indexers': new_indexers,
-        'my_mentees': my_mentees,
-        'mentees': mentees,
-        'max_show_new': max_show_new,
-        'queue_name': 'mentoring',
-      })
 
 
 @permission_required('indexer.can_reserve')
