@@ -82,9 +82,31 @@ dump-import FILE: db
     {{web}} python manage.py setup_initial_changesets
     just dump-stats
 
+# Real-data verification lane (roadmap A4). See dumps/README.md.
 
+# Verify a dump file matches the committed dumps/CHECKSUMS manifest
+dump-verify FILE:
+    #!/usr/bin/env bash
+    sha=$(sha256sum "{{FILE}}" | cut -d' ' -f1)
+    if grep -q "^$sha " dumps/CHECKSUMS; then
+        echo "OK: {{FILE}} matches dumps/CHECKSUMS"
+    else
+        echo "MISMATCH: $sha not in dumps/CHECKSUMS"; exit 1
+    fi
 
+# Load a raw dump into the throwaway test_dump database (Tier 1; destructive to test_dump)
+dump-load FILE: db
+    {{mysql}} -e "DROP DATABASE IF EXISTS test_dump; CREATE DATABASE test_dump CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+    {{dc}} exec -T db sh -c "exec mysql -ugcd-django -pdb-gcd test_dump" < {{FILE}}
+    @echo "Loaded {{FILE}} into test_dump."
 
+# Regenerate the committed subset fixture from the loaded dump (Tier 2)
+dump-extract:
+    {{dc}} run --rm --no-deps -w /code/gcd-django -e MYSQL_DATABASE=test_dump web python manage.py sample_from_dump
+
+# Run the real-data verification tests against the committed subset
+test-dump *ARGS: db
+    {{web}} pytest -m dump {{ARGS}}
 
 # Start Elasticsearch (search pages) and build the index
 search:

@@ -11,6 +11,12 @@
 # Local configuration
 settings_local.py
 
+# Real comics.org dumps are large (GBs) and third-party data: never commit
+# them. Keep only the docs and the checksum manifest under dumps/.
+dumps/*
+!dumps/README.md
+!dumps/CHECKSUMS
+
 # Editor temp and config files
 *.py~
 *.html~

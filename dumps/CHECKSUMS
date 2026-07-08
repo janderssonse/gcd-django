@@ -1,0 +1,7 @@
+# SHA-256 checksums of comics.org dumps used for real-data verification (A4).
+# Raw dumps are gitignored (large, third-party); this manifest pins which
+# dump a verification run used. Add a row after downloading a new dump:
+#   sha256sum dumps/<file> >> dumps/CHECKSUMS
+#
+# <sha256>  <filename>
+3f9d7d6c3c471adc56faa60357c032a452169e06c630d355f1dfbbb465cc5a38  2026-07-01.sql

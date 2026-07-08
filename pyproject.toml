@@ -3,6 +3,12 @@
 DJANGO_SETTINGS_MODULE = "settings"
 # Where the tests live, so a bare `pytest` finds them.
 testpaths = ["apps"]
+# The default suite excludes the real-data lane; `just test-dump` passes
+# `-m dump` which overrides this (the later -m wins).
+addopts = "-m 'not dump'"
+markers = [
+    "dump: real-data verification tests, run via `just test-dump` against the committed dump subset fixture (roadmap A4).",
+]
 
 [tool.ruff]
 line-length = 88
