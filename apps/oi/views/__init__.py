@@ -127,6 +127,12 @@ from apps.oi.covers import get_preview_image_tag, \
 from apps.oi import states
 from apps.oi.templatetags.editing import is_locked
 
+# publisher views (roadmap C1), re-exported for the stable import surface.
+from apps.oi.views.publisher import (  # noqa: F401
+    add_publisher, add_indicia_publisher, add_brand_group, add_brand,
+    _display_add_brand_form, add_brand_use, process_add_brand_use, _display_add_brand_use_form,
+    add_printer, add_indicia_printer)
+
 # core views (roadmap C1), re-exported for the stable import surface.
 from apps.oi.views.core import (  # noqa: F401
     REVISION_CLASSES, DISPLAY_CLASSES, REACHED_CHANGE_LIMIT, _cant_get,
@@ -553,238 +559,24 @@ def _display_bulk_issue_change_form(request, form, credits_formset,
 ##############################################################################
 
 
-@permission_required('indexer.can_reserve')
-def add_publisher(request):
-    return add_generic(request, 'publisher')
 
 
-@permission_required('indexer.can_reserve')
-def add_indicia_publisher(request, parent_id):
-    parent = get_object_or_404(Publisher, id=parent_id)
-    if parent.deleted or parent.pending_deletion():
-        return render_error(
-          request,
-          'Cannot add indicia / colophon publishers since '
-          '"%s" is deleted or pending deletion.' % parent)
-    save_kwargs = {'parent': parent}
-    cancel = urlresolvers.reverse('show_publisher',
-                                  kwargs={'publisher_id': parent_id})
-    object_url = urlresolvers.reverse('add_indicia_publisher',
-                                      kwargs={'parent_id': parent.id})
-    return add_generic(
-      request, 'indicia_publisher',
-      object_url=object_url,
-      object_name='Indicia / Colophon Publisher',
-      cancel=cancel,
-      save_kwargs=save_kwargs)
 
 
-@permission_required('indexer.can_reserve')
-def add_brand_group(request, parent_id):
-    parent = get_object_or_404(Publisher, id=parent_id)
-    if parent.deleted or parent.pending_deletion():
-        return render_error(
-          request,
-          'Cannot add brands since '
-          '"%s" is deleted or pending deletion.' % parent)
-    save_kwargs = {'parent': parent}
-    cancel = urlresolvers.reverse('show_publisher',
-                                  kwargs={'publisher_id': parent_id})
-    object_url = urlresolvers.reverse('add_brand_group',
-                                      kwargs={'parent_id': parent.id})
-    return add_generic(
-      request, 'brand_group',
-      object_url=object_url,
-      object_name='Brand Group',
-      cancel=cancel,
-      save_kwargs=save_kwargs)
 
 
-@permission_required('indexer.can_reserve')
-def add_brand(request, brand_group_id=None, publisher_id=None):
-    if not request.user.indexer.can_reserve_another():
-        return render_error(request, REACHED_CHANGE_LIMIT)
-
-    if brand_group_id is not None:
-        try:
-            brand_group = BrandGroup.objects.get(id=brand_group_id)
-            if brand_group.deleted or brand_group.pending_deletion():
-                return render_error(
-                  request, 'Cannot add brands '
-                  'since "%s" is deleted or pending deletion.' % brand_group)
-        except (BrandGroup.DoesNotExist, BrandGroup.MultipleObjectsReturned):
-            return render_error(
-              request, 'Could not find Brand Group for id %d' % brand_group_id)
-        publisher = None
-    else:
-        try:
-            publisher = Publisher.objects.get(id=publisher_id)
-            if publisher.deleted or publisher.pending_deletion():
-                return render_error(
-                  request, 'Cannot add brands '
-                  'since "%s" is deleted or pending deletion.' % publisher)
-        except (Publisher.DoesNotExist, Publisher.MultipleObjectsReturned):
-            return render_error(
-              request, 'Could not find Publisher for id %d' % publisher_id)
-        brand_group = None
-
-    if request.method != 'POST':
-        form = get_brand_revision_form(user=request.user, publisher=publisher,
-                                       brand_group=brand_group)()
-        return _display_add_brand_form(request, form, brand_group, publisher)
-
-    if 'cancel' in request.POST:
-        if brand_group_id:
-            return HttpResponseRedirect(urlresolvers.reverse(
-                'show_brand_group',
-                kwargs={'brand_group_id': brand_group_id}))
-        else:
-            return HttpResponseRedirect(urlresolvers.reverse(
-                'show_publisher',
-                kwargs={'publisher_id': publisher_id}))
-
-    form = get_brand_revision_form(user=request.user, publisher=publisher,
-                                   brand_group=brand_group)(request.POST,
-                                                            request.FILES)
-    if not form.is_valid():
-        return _display_add_brand_form(request, form, brand_group, publisher)
-
-    changeset = Changeset(indexer=request.user, state=states.OPEN,
-                          change_type=CTYPES['brand'])
-    changeset.save()
-    revision = form.save(commit=False)
-    revision.save_added_revision(changeset=changeset)
-    form.save_m2m()
-    # TODO make generic
-    if revision.image_revision:
-        revision.image_revision.changeset = changeset
-        revision.image_revision.object_id = revision.id
-        revision.image_revision.content_type = ContentType\
-                               .objects.get_for_model(revision)
-        revision.image_revision.save()
-
-    return submit(request, changeset.id)
 
 
-def _display_add_brand_form(request, form, brand_group=None, publisher=None):
-    object_name = 'Brand Emblem'
-    if brand_group:
-        object_url = urlresolvers.reverse('add_brand_via_group',
-                                          kwargs={'brand_group_id':
-                                                  brand_group.id})
-    else:
-        object_url = urlresolvers.reverse(
-          'add_brand_via_publisher', kwargs={'publisher_id': publisher.id})
-
-    return oi_render(
-      request, 'oi/edit/add_frame.html',
-      {
-        'object_name': object_name,
-        'object_url': object_url,
-        'action_label': 'Submit new',
-        'form': form,
-      })
 
 
-@permission_required('indexer.can_reserve')
-def add_brand_use(request, brand_id, publisher_id=None):
-    brand = get_object_or_404(Brand, id=brand_id, deleted=False)
-    if brand.pending_deletion():
-        return render_error(
-          request, 'Cannot add a brand use '
-          'since "%s" is pending deletion.' % brand)
-    if publisher_id:
-        publisher = get_object_or_404(Publisher, id=publisher_id,
-                                      deleted=False)
-        if publisher.pending_deletion():
-            return render_error(
-              request, 'Cannot add a brand use '
-              'since "%s" is pending deletion.' % publisher)
-        if request.method != 'POST':
-            # we should only get here by a POST
-            raise NotImplementedError
-
-        if 'cancel' in request.POST:
-            return HttpResponseRedirect(urlresolvers.reverse(
-                'show_brand',
-                kwargs={'brand_id': brand_id}))
-
-        form = get_brand_use_revision_form(user=request.user)(request.POST)
-        if not form.is_valid:
-            return _display_add_brand_use_form(request, form, brand, publisher)
-
-        changeset = Changeset(indexer=request.user, state=states.OPEN,
-                              change_type=CTYPES['brand_use'])
-        changeset.save()
-        revision = form.save(commit=False)
-        revision.save_added_revision(changeset=changeset, emblem=brand,
-                                     publisher=publisher)
-        return submit(request, changeset.id)
-    else:
-        data = {'heading': mark_safe('<h2>Select Publisher where the Brand %s '
-                                     'was in use</h2>' % esc(brand.name)),
-                'target': 'a publisher',
-                'brand_id': brand_id,
-                'publisher': True,
-                'return': 'process_add_brand_use',
-                'cancel': urlresolvers.reverse('show_brand',
-                                               kwargs={'brand_id': brand_id})}
-        select_key = store_select_data(request, None, data)
-        return HttpResponseRedirect(urlresolvers.reverse(
-          'select_object', kwargs={'select_key': select_key}))
 
 
-@permission_required('indexer.can_reserve')
-def process_add_brand_use(request, data, object_type, publisher_id):
-    if object_type != 'publisher':
-        raise ValueError
-    brand = get_object_or_404(Brand, id=data['brand_id'], deleted=False)
-
-    publisher = get_object_or_404(Publisher, id=publisher_id, deleted=False)
-
-    form = get_brand_use_revision_form(user=request.user)
-    return _display_add_brand_use_form(request, form, brand, publisher)
 
 
-def _display_add_brand_use_form(request, form, brand, publisher):
-    object_name = 'BrandUse for %s at %s' % (brand, publisher)
-    object_url = urlresolvers.reverse('add_brand_use',
-                                      kwargs={'brand_id': brand.id,
-                                              'publisher_id': publisher.id})
-
-    return oi_render(
-      request, 'oi/edit/add_frame.html',
-      {
-        'object_name': object_name,
-        'object_url': object_url,
-        'action_label': 'Submit new',
-        'form': form,
-      })
 
 
-@permission_required('indexer.can_reserve')
-def add_printer(request):
-    return add_generic(request, 'printer')
 
 
-@permission_required('indexer.can_reserve')
-def add_indicia_printer(request, parent_id):
-    parent = get_object_or_404(Printer, id=parent_id)
-    if parent.deleted or parent.pending_deletion():
-        return render_error(
-          request,
-          'Cannot add indicia printers since '
-          '"%s" is deleted or pending deletion.' % parent)
-    save_kwargs = {'parent': parent}
-    cancel = urlresolvers.reverse('show_printer',
-                                  kwargs={'printer_id': parent_id})
-    object_url = urlresolvers.reverse('add_indicia_printer',
-                                      kwargs={'parent_id': parent.id})
-    return add_generic(request, 'indicia_printer',
-                       object_url=object_url,
-                       object_name='Indicia Printer',
-                       cancel=cancel,
-                       save_kwargs=save_kwargs)
 
 
 @permission_required('indexer.can_reserve')
