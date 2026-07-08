@@ -194,6 +194,10 @@ from apps.oi.views.mentoring import (  # noqa: F401
 from apps.oi.views.ongoing import (  # noqa: F401
     ongoing, delete_ongoing)
 
+# cover views (roadmap C1), re-exported for the stable import surface.
+from apps.oi.views.cover import (  # noqa: F401
+    move_cover, undo_move_cover)
+
 ##############################################################################
 # Bulk Changes
 ##############################################################################
@@ -1842,74 +1846,6 @@ def move_story_revision(request, id):
     return HttpResponseRedirect(urlresolvers.reverse(
       'edit', kwargs={'id': story.changeset.id}))
 
-
-@permission_required('indexer.can_reserve')
-def move_cover(request, id, cover_id=None):
-    """ move cover between two issue revisions """
-    changeset = get_object_or_404(Changeset, id=id)
-    if request.user != changeset.indexer:
-        return render_error(
-          request,
-          'Only the reservation holder may move covers in a changeset.')
-
-    if changeset.issuerevisions.count() != 2:
-        return render_error(
-          request, 'Covers can only be moved between two issues.')
-
-    if request.method != 'POST':
-        covers = []
-        for revision in changeset.issuerevisions.all():
-            if revision.issue and revision.issue.has_covers():
-                for image in get_image_tags_per_issue(
-                  revision.issue,
-                  "current covers", ZOOM_MEDIUM, as_list=True):
-                    image.append(revision)
-                    covers.append(image)
-        return oi_render(
-          request,
-          'oi/edit/move_covers.html',
-          {
-              'changeset': changeset,
-              'covers': covers,
-              'table_width': UPLOAD_WIDTH
-          })
-
-    cover = get_object_or_404(Cover, id=cover_id)
-    issue = changeset.issuerevisions.filter(issue=cover.issue)
-    if not issue:
-        return render_error(
-          request, 'Cover does not belong to an issue of this changeset.')
-
-    revision_lock = _get_revision_lock(cover, changeset)
-    if not revision_lock:
-        return render_error(
-          request, 'Cannot move the cover as it is already reserved.')
-
-    # create cover revision
-    revision = CoverRevision.objects.clone_revision(cover, changeset=changeset)
-
-    return HttpResponseRedirect(urlresolvers.reverse(
-      'edit', kwargs={'id': changeset.id}))
-
-
-@permission_required('indexer.can_reserve')
-def undo_move_cover(request, id, cover_id):
-    changeset = get_object_or_404(Changeset, id=id)
-    if request.user != changeset.indexer:
-        return render_error(
-          request,
-          'Only the reservation holder may undo cover moves in a changeset.')
-
-    if request.method != 'POST':
-        return _cant_get(request)
-    # TODO FIXME
-    cover_revision = get_object_or_404(CoverRevision, id=cover_id,
-                                       changeset=changeset)
-    _free_revision_lock(cover_revision.cover)
-    cover_revision.delete()
-
-    return HttpResponseRedirect(urlresolvers.reverse(
-      'edit', kwargs={'id': changeset.id}))
 
 ##############################################################################
 # Removing Items from a Changeset
