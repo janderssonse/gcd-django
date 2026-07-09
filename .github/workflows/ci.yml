@@ -1,0 +1,38 @@
+name: CI
+
+# Runs the same checks a developer runs locally, by driving the justfile
+# recipes (`just lint` / `just snapshot-check` / `just test-fresh`) so CI and
+# the local workflow never drift. Everything executes in the compose
+# services of a sibling gcd-django-docker checkout, like on a dev machine.
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install just
+        uses: extractions/setup-just@v2
+
+      - name: Check out the container environment
+        run: git clone -b improve-dev-setup https://github.com/janderssonse/gcd-django-docker ../gcd-django-docker
+
+      - name: Build the web image
+        run: just build
+
+      - name: Lint (ruff)
+        run: just lint
+
+      - name: Snapshot freshness (migrate --check against db/schema-snapshot.sql)
+        run: just snapshot-check
+
+      - name: Tests
+        run: just test-fresh
