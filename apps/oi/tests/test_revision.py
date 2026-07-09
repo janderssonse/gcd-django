@@ -323,6 +323,8 @@ def patched_other_dummy():
     # OtherDummyRevision.other_dummy, as the new OtherDummy value must be
     # constructed under the patch.
     with mock.patch('apps.oi.tests.dummy_models.OtherDummy.save'), \
+      mock.patch('apps.oi.tests.dummy_models.OtherDummy.update_cached_counts',
+                 return_value={'issue_count'}), \
       mock.patch('apps.oi.tests.dummy_models.OtherDummyRevision.other_dummy',
                  new=OtherDummy()):
         # revision.other_dummy is mocked, so no need to set it in constructor.
@@ -343,7 +345,7 @@ def test_adjust_stats_neither(mock_update_all, patched_other_dummy):
         mock.call(old_counts, country=None, language=None, negate=True),
         mock.call(new_counts, country=None, language=None)])
     assert mock_update_all.call_count == 2
-    rev.source.save.assert_called_once_with()
+    rev.source.save.assert_called_once_with(update_fields=mock.ANY)
 
 
 def test_adjust_stats_both(mock_update_all, patched_other_dummy):
@@ -369,7 +371,7 @@ def test_adjust_stats_both(mock_update_all, patched_other_dummy):
         mock.call(new_counts, country=changes['new country'],
                   language=changes['new language'])])
     assert mock_update_all.call_count == 2
-    rev.source.save.assert_called_once_with()
+    rev.source.save.assert_called_once_with(update_fields=mock.ANY)
 
 
 def test_adjust_parent_counts_single(patched_other_dummy):
@@ -391,9 +393,9 @@ def test_adjust_parent_counts_single(patched_other_dummy):
 
         old_value.update_cached_counts.assert_called_once_with(old_counts,
                                                                negate=True)
-        old_value.save.assert_called_once_with()
+        old_value.save.assert_called_once_with(update_fields=mock.ANY)
         new_value.update_cached_counts.assert_called_once_with(new_counts)
-        new_value.save.assert_called_once_with()
+        new_value.save.assert_called_once_with(update_fields=mock.ANY)
 
 
 def test_adjust_parent_counts_single_no_change(patched_other_dummy):
@@ -416,7 +418,7 @@ def test_adjust_parent_counts_single_no_change(patched_other_dummy):
         )
 
         new_value.update_cached_counts.assert_called_once_with(deltas)
-        new_value.save.assert_called_once_with()
+        new_value.save.assert_called_once_with(update_fields=mock.ANY)
 
 
 def test_adjust_parent_counts_multi(patched_other_dummy):
@@ -426,6 +428,11 @@ def test_adjust_parent_counts_multi(patched_other_dummy):
 
         a, b, c, d = (mock.MagicMock(), mock.MagicMock(),
                       mock.MagicMock(), mock.MagicMock())
+        # Return a real set so the caller's `if fields:` check doesn't record
+        # a __bool__() call on the mock's return value (which would interleave
+        # with the update_cached_counts calls asserted below).
+        for m in (a, b, c, d):
+            m.update_cached_counts.return_value = {'issue_count'}
         old_value = {a, b, c}
         new_value = {d, b}
         deltas = {'issues': 1}
@@ -441,11 +448,11 @@ def test_adjust_parent_counts_multi(patched_other_dummy):
         for o in old_value - new_value:
             o.update_cached_counts.assert_called_once_with(old_counts,
                                                            negate=True)
-            o.save.assert_called_once_with()
+            o.save.assert_called_once_with(update_fields=mock.ANY)
 
         for n in new_value - old_value:
             n.update_cached_counts.assert_called_once_with(new_counts)
-            n.save.assert_called_once_with()
+            n.save.assert_called_once_with(update_fields=mock.ANY)
 
         for i in new_value & old_value:
             i.update_cached_counts.assert_has_calls([
@@ -454,7 +461,8 @@ def test_adjust_parent_counts_multi(patched_other_dummy):
             ])
             assert i.update_cached_counts.call_count == 2
 
-            i.save.assert_has_calls([mock.call(), mock.call()])
+            i.save.assert_has_calls([mock.call(update_fields=mock.ANY),
+                                     mock.call(update_fields=mock.ANY)])
             assert i.save.call_count == 2
 
 
@@ -478,7 +486,7 @@ def test_adjust_parent_counts_multi_no_change(patched_other_dummy):
 
         for v in new_value:
             v.update_cached_counts.assert_called_once_with(deltas)
-            v.save.assert_called_once_with()
+            v.save.assert_called_once_with(update_fields=mock.ANY)
 
 
 @pytest.fixture

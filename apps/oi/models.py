@@ -1846,8 +1846,9 @@ class Revision(models.Model):
                 self._adjust_parent_counts(parent_tuple, changes, deltas,
                                            old_counts, new_counts)
 
-            self.source.update_cached_counts(deltas)
-            self.source.save()
+            fields = self.source.update_cached_counts(deltas)
+            if fields:
+                self.source.save(update_fields=fields)
 
     def _adjust_parent_counts(self, parent_tuple, changes, deltas,
                               old_counts, new_counts):
@@ -1875,29 +1876,36 @@ class Revision(models.Model):
             if old_value:
                 if multi:
                     for v in old_value:
-                        v.update_cached_counts(old_counts, negate=True)
-                        v.save()
+                        fields = v.update_cached_counts(old_counts, negate=True)
+                        if fields:
+                            v.save(update_fields=fields)
                 else:
-                    old_value.update_cached_counts(old_counts, negate=True)
-                    old_value.save()
+                    fields = old_value.update_cached_counts(old_counts,
+                                                            negate=True)
+                    if fields:
+                        old_value.save(update_fields=fields)
             if new_value:
                 if multi:
                     for v in new_value:
-                        v.update_cached_counts(new_counts)
-                        v.save()
+                        fields = v.update_cached_counts(new_counts)
+                        if fields:
+                            v.save(update_fields=fields)
                 else:
-                    new_value.update_cached_counts(new_counts)
-                    new_value.save()
+                    fields = new_value.update_cached_counts(new_counts)
+                    if fields:
+                        new_value.save(update_fields=fields)
 
         elif old_counts != new_counts:
             # Doesn't matter whether we use old or new as they are the same.
             if multi:
                 for v in new_value:
-                    v.update_cached_counts(deltas)
-                    v.save()
+                    fields = v.update_cached_counts(deltas)
+                    if fields:
+                        v.save(update_fields=fields)
             else:
-                new_value.update_cached_counts(deltas)
-                new_value.save()
+                fields = new_value.update_cached_counts(deltas)
+                if fields:
+                    new_value.save(update_fields=fields)
 
     # #####################################################################
     # Methods for processing the indexer edits, in particular involving

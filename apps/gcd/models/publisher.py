@@ -69,8 +69,11 @@ class BasePublisher(GcdData):
         # Don't apply F() if delta is 0, because we don't want
         # a lazy evaluation F-object result in a count field
         # if we don't absolutely need it.
+        fields = set()
         if deltas.get('issues', 0):
             self.issue_count = F('issue_count') + deltas['issues']
+            fields.add('issue_count')
+        return fields
 
     def full_name(self):
         return str(self)
@@ -135,19 +138,26 @@ class Publisher(BasePublisher):
         # Don't apply F() if delta is 0, because we don't want
         # a lazy evaluation F-object result in a count field
         # if we don't absolutely need it.
+        fields = set()
         if deltas.get('brands', 0):
             self.brand_count = F('brand_count') + deltas['brands']
+            fields.add('brand_count')
         if deltas.get('indicia publishers', 0):
             self.indicia_publisher_count = (F('indicia_publisher_count') +
                                             deltas['indicia publishers'])
+            fields.add('indicia_publisher_count')
         if deltas.get('series', 0):
             self.series_count = F('series_count') + deltas['series']
+            fields.add('series_count')
         # special case for non-comics publications,
         # counts for publisher series, but not for stats
         if deltas.get('publisher series', 0):
             self.series_count = F('series_count') + deltas['publisher series']
+            fields.add('series_count')
         if deltas.get('issues', 0):
             self.issue_count = F('issue_count') + deltas['issues']
+            fields.add('issue_count')
+        return fields
 
     _update_stats = True
 
@@ -408,11 +418,15 @@ class Printer(BasePublisher):
         # Don't apply F() if delta is 0, because we don't want
         # a lazy evaluation F-object result in a count field
         # if we don't absolutely need it.
+        fields = set()
         if deltas.get('indicia printers', 0):
             self.indicia_printer_count = (F('indicia_printer_count') +
                                           deltas['indicia printers'])
+            fields.add('indicia_printer_count')
         if deltas.get('issues', 0):
             self.issue_count = F('issue_count') + deltas['issues']
+            fields.add('issue_count')
+        return fields
 
     def show_issue_count(self):
         from .issue import Issue
@@ -457,12 +471,15 @@ class IndiciaPrinter(BasePublisher):
         # Don't apply F() if delta is 0, because we don't want
         # a lazy evaluation F-object result in a count field
         # if we don't absolutely need it.
+        fields = set()
         if deltas.get('issues', 0):
             self.issue_count = F('issue_count') + deltas['issues']
+            fields.add('issue_count')
 
         if deltas.get('issues', 0):
             self.parent.issue_count = F('issue_count') + deltas['issues']
-            self.parent.save()
+            self.parent.save(update_fields=['issue_count'])
+        return fields
 
     def object_page_name(self):
         parent_url = self.parent.get_absolute_url()

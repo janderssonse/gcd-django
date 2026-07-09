@@ -71,8 +71,13 @@ class GcdBase(models.Model):
 
         Classes that do not maintain cached counts of child objects
         need not override this method.
+
+        Returns the set of count field names that were modified, so the
+        caller can persist just those with ``save(update_fields=...)``
+        instead of a full-row save that would clobber concurrent edits to
+        the object's other columns.
         """
-        pass
+        return set()
 
 
 class GcdData(GcdBase):

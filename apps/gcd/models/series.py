@@ -244,8 +244,11 @@ class Series(GcdData):
         # Don't apply F() if delta is 0, because we don't want
         # a lazy evaluation F-object result in a count field
         # if we don't absolutely need it.
+        fields = set()
         if deltas.get('series issues', 0):
             self.issue_count = F('issue_count') + deltas['series issues']
+            fields.add('issue_count')
+        return fields
 
     def ordered_brands(self):
         """
