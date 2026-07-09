@@ -26,22 +26,22 @@ db:
     {{dc}} up -d --wait db memcached
 
 # Load all fixtures onto the committed schema snapshot (fast; no migration replay). Destructive to dev data.
-seed-fast: restore
+seed: restore
     {{web}} python manage.py seed_dev --no-migrate
 
-# Migrate an empty database and load all fixtures (full replay).
-seed: db
+# Migrate an empty database and load all fixtures (full replay). Use to debug migrations or before `just snapshot`.
+seed-full: db
     {{web}} python manage.py seed_dev
 
 # Add a small sample of publishers/series/issues for a populated site
 sample: db
     {{web}} python manage.py sample_data
 
-# Snapshot-based onboarding: clean clone to a populated, running site in seconds
-fresh-fast: build seed-fast sample up
-
-# One command from a clean clone to a populated, running site
+# One command from a clean clone to a populated, running site (uses the schema snapshot)
 fresh: build seed sample up
+
+# Full-replay onboarding without the snapshot (slower). Use when the snapshot is being regenerated.
+fresh-full: build seed-full sample up
 
 # Start the web server (http://127.0.0.1:8000)
 up: db

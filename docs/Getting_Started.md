@@ -24,14 +24,16 @@ accounts from `apps/indexer/fixtures/users.yaml` — an admin, an approver
 and an indexer; usernames and passwords are in that file) plus a little
 sample data, and starts the server.
 
-`just fresh` migrates an empty database and loads everything, which takes
-a few minutes. `just seed` does the same without starting the server.
-
-With the committed schema snapshot the same happens in seconds:
+`just fresh` is fast because it loads a committed **migrated-schema
+snapshot** (`db/schema-snapshot.sql`) instead of replaying ~190 migrations,
+so the database is ready in seconds rather than minutes. When you would
+rather replay the migrations from scratch — debugging a migration, or right
+after adding one — use the full-replay variants:
 
 ```
-just fresh-fast     # snapshot + fixtures + sample data + serve
-just seed-fast      # snapshot + fixtures only (no serve)
+just fresh-full     # migrate an empty DB + fixtures + sample data + serve
+just seed           # snapshot + fixtures only (no serve)
+just seed-full      # migrate + fixtures only (no serve)
 ```
 
 Run the test suite the same way:
@@ -84,8 +86,9 @@ just snapshot-check  # fail if the snapshot is missing any migration
 
 `snapshot`/`snapshot-check` build in a throwaway `test_snapshot` database
 (the app DB user is granted rights on `test_%` names), so they never touch
-your dev data. A stale snapshot fails `just snapshot-check`, so regenerate and commit it
-together with new migrations.
+your dev data. **CI runs `just snapshot-check` on every push**, so a
+snapshot missing a migration fails the build instead of silently handing a
+teammate a stale schema.
 
 The web container is configured by the `settings_local.py` that
 gcd-django-docker mounts into it; there is nothing to set up in this
