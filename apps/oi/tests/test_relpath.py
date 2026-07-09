@@ -117,16 +117,18 @@ def test_init_prefix_multi(classes_and_fields):
         single_value_field, multi_value_field, non_relational_field,
     ) = classes_and_fields
 
+    # 'foo' is many-valued (an intermediate step), 'bar' is single-valued.
     starting_model_class._meta.get_field.return_value = multi_value_field
     multi_value_field.remote_field.model = foo_model_class
     foo_model_class._meta.get_field.return_value = single_value_field
     single_value_field.remote_field.model = bar_model_class
 
-    with pytest.raises(ValueError) as excinfo:
-        RelPath(starting_model_class, 'foo', 'bar')
+    rp = RelPath(starting_model_class, 'foo', 'bar')
 
-    assert ("Many-valued relations cannot appear before the end of the path" in
-            str(excinfo.value))
+    # A many-valued intermediate is now allowed: the path fans out.
+    assert rp._fields == [multi_value_field, single_value_field]
+    assert rp.multi_prefix is True
+    assert rp.multi_valued is True
 
 
 def test_init_non_rel(classes_and_fields):
@@ -264,6 +266,54 @@ def test_get_value_all_none_or_empty(multi_isinstance_passes):
 
     value = multi_isinstance_passes.get_value(None)
     assert value == empty_queryset
+
+
+def test_get_value_multi_prefix_dedups(classes_and_fields):
+    (
+        starting_model_class, foo_model_class, bar_model_class,
+        single_value_field, multi_value_field, non_relational_field,
+    ) = classes_and_fields
+
+    # path: starting --foo (many)--> foo_model --bar (single)--> bar_model
+    starting_model_class._meta.get_field.return_value = multi_value_field
+    multi_value_field.remote_field.model = foo_model_class
+    foo_model_class._meta.get_field.return_value = single_value_field
+    single_value_field.remote_field.model = bar_model_class
+
+    rp = RelPath(starting_model_class, 'foo', 'bar')
+    rp._first_model_class = object  # bypass the isinstance() check
+
+    # Two intermediate objects that both resolve to the SAME leaf: the
+    # fan-out must collapse them to a single value.  This is the anti-
+    # double-count guarantee that brand_emblem -> group relies on.
+    leaf = mock.MagicMock()
+    emblem_one = mock.MagicMock()
+    emblem_one.bar = leaf
+    emblem_two = mock.MagicMock()
+    emblem_two.bar = leaf
+    instance = mock.MagicMock()
+    instance.foo.all.return_value = [emblem_one, emblem_two]
+
+    assert rp.get_value(instance) == {leaf}
+
+
+def test_set_value_multi_prefix_rejected(classes_and_fields):
+    (
+        starting_model_class, foo_model_class, bar_model_class,
+        single_value_field, multi_value_field, non_relational_field,
+    ) = classes_and_fields
+
+    starting_model_class._meta.get_field.return_value = multi_value_field
+    multi_value_field.remote_field.model = foo_model_class
+    foo_model_class._meta.get_field.return_value = single_value_field
+    single_value_field.remote_field.model = bar_model_class
+
+    rp = RelPath(starting_model_class, 'foo', 'bar')
+    rp._first_model_class = object
+
+    with pytest.raises(ValueError) as excinfo:
+        rp.set_value(mock.MagicMock(), [1, 2, 3])
+    assert 'many-valued intermediate' in str(excinfo.value)
 
 
 def test_get_value_instance_check(single_relpath, instance):

@@ -1746,31 +1746,13 @@ class Revision(models.Model):
         # the 'parent' database fields to 'publisher'.
         name = 'publisher' if attrs[-1] == 'parent' else attrs[-1]
 
-        if attrs == ('brand_emblem', 'group'):
-            # Special case: a two-hop m2m path that RelPath below cannot
-            # follow. If more m2m-related objects need stats updating,
-            # we may need a more general mechanism.
-            def brand_groups(issue_or_revision):
-                groups = set()
-                for emblem in issue_or_revision.brand_emblem.prefetch_related(
-                        'group'):
-                    groups.update(emblem.group.all())
-                return groups
+        old_rp = relpath.RelPath(self.source_class, *attrs)
+        new_rp = relpath.RelPath(type(self), *attrs)
 
-            # As in the generic path: an add has no old value and a
-            # delete has no new value.
-            old_value = brand_groups(old) if old and not self.added else set()
-            new_value = brand_groups(new) if not self.deleted else set()
-            multi_valued = True
-            boolean_valued = False
-        else:
-            old_rp = relpath.RelPath(self.source_class, *attrs)
-            new_rp = relpath.RelPath(type(self), *attrs)
-
-            old_value = old_rp.get_value(old, empty=self.added)
-            new_value = new_rp.get_value(new, empty=self.deleted)
-            multi_valued = old_rp.multi_valued
-            boolean_valued = old_rp.boolean_valued
+        old_value = old_rp.get_value(old, empty=self.added)
+        new_value = new_rp.get_value(new, empty=self.deleted)
+        multi_valued = old_rp.multi_valued
+        boolean_valued = old_rp.boolean_valued
 
         changed = '%s changed' % name
         if self.added or self.deleted:
@@ -1874,13 +1856,7 @@ class Revision(models.Model):
         old_value = changes['old %s' % parent]
         new_value = changes['new %s' % parent]
 
-        if parent_tuple == ('brand_emblem', 'group'):
-            # Handle the special case of brand_emblem and group.
-            # If we have more m2m-related objects that need stats
-            # updating, we may need a more general mechanism.
-            multi = True
-        else:
-            multi = relpath.RelPath(type(self), *parent_tuple).multi_valued
+        multi = relpath.RelPath(type(self), *parent_tuple).multi_valued
 
         if changed:
             if old_value:

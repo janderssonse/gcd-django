@@ -37,22 +37,22 @@ class RelPath(object):
         self._model_classes = []
         """ _model_classes[i] is the target model of _fields[i] """
 
+        self._multi_prefix = False
+        """ True if any field before the last is many-valued (a fan-out). """
+
         cls = self._first_model_class
         last_i = len(self._names) - 1
         for i in range(0, len(self._names)):
             field = cls._meta.get_field(self._names[i])
             if i != last_i and (field.many_to_many or field.one_to_many):
-                # Supporting internal multi-valued fields would get us into
-                # weird set-of-sets (and set-of-set-of-sets, etc.) situations
-                # that we only have for brand_emblem and group so far.
-                #
-                # That case is handled specially in oi.models in the
-                # _check_major_change and _adjust_parent_counts methods.
-                # We can revisit this if we find other use cases. It is only
-                # needed for updating counts on related objects, i.e. get_value,
-                # not for changing the values with set_value.
-                raise ValueError("Many-valued relations cannot appear before "
-                                 "the end of the path")
+                # A many-valued field before the end turns the path into a
+                # fan-out: applying it yields the flattened, de-duplicated
+                # set of leaves reachable through any intermediate object
+                # (e.g. brand_emblem -> group, where two emblems may share a
+                # group).  Supported for reading values (get_value), which is
+                # all the count and stats machinery needs; setting a value
+                # through such a path has no meaning (see set_value).
+                self._multi_prefix = True
 
             self._fields.append(field)
             if any((field.one_to_one, field.one_to_many,
@@ -66,11 +66,17 @@ class RelPath(object):
                                  "a non-relational field")
 
         last = self._fields[-1]
-        self._multi_valued = bool(last.many_to_many or last.one_to_many)
+        self._multi_valued = bool(self._multi_prefix or
+                                  last.many_to_many or last.one_to_many)
 
     @property
     def multi_valued(self):
         return self._multi_valued
+
+    @property
+    def multi_prefix(self):
+        """ True if the path fans out through a many-valued intermediate. """
+        return self._multi_prefix
 
     @property
     def boolean_valued(self):
@@ -120,10 +126,39 @@ class RelPath(object):
             raise ValueError("'%s' is not an instance of '%s'" %
                              (instance, self._first_model_class))
 
+        if self._multi_prefix:
+            return self._fan_out(instance)
+
         values = self._expand(instance)
         if self._multi_valued:
             return values[-1].all()
         return values[-1]
+
+    def _fan_out(self, instance):
+        """
+        Returns the flattened, de-duplicated set of leaf objects for a path
+        that passes through one or more many-valued intermediate fields.
+
+        Each many-valued step branches over all of its related objects, so
+        the result is the union of the leaves reachable by any route.  A leaf
+        reachable more than one way (e.g. two brand emblems sharing a group)
+        appears only once, which is what the count machinery relies on to
+        avoid double counting.
+        """
+        frontier = [instance]
+        for i, name in enumerate(self._names):
+            field = self._fields[i]
+            next_frontier = []
+            for obj in frontier:
+                if obj is None:
+                    continue
+                related = getattr(obj, name)
+                if field.many_to_many or field.one_to_many:
+                    next_frontier.extend(related.all())
+                elif related is not None:
+                    next_frontier.append(related)
+            frontier = next_frontier
+        return set(frontier)
 
     def set_value(self, instance, value):
         """
@@ -135,6 +170,9 @@ class RelPath(object):
         if not isinstance(instance, self._first_model_class):
             raise ValueError("'%s' is not an instance of '%s'" %
                              (instance, self._first_model_class))
+        if self._multi_prefix:
+            raise ValueError("Cannot set a value through a many-valued "
+                             "intermediate relation")
         # We want to change the final value.  So do that by applying
         # the final name to the next-to-last value with setattr.
         # If there is only one name/field/value, the "second to last value"
