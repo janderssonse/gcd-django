@@ -1775,6 +1775,8 @@ def indicia_publisher(request, indicia_publisher_id):
 
 def show_indicia_publisher(request, indicia_publisher, preview=False):
     indicia_publisher_issues = indicia_publisher.active_issues()\
+                                                .order_by('series__sort_name',
+                                                          'sort_code')\
                                                 .prefetch_related('series',
                                                                   'brand_emblem',)
     image_tag, selected_issue = _get_random_cover_image(request,

@@ -21,7 +21,7 @@ ZOOM_LARGE = 4
 class Cover(models.Model):
     class Meta:
         app_label = 'gcd'
-        ordering = ['issue']
+        ordering = ['issue_id']
         get_latest_by = "id"
         permissions = (
             ('can_upload_cover', 'can upload cover'),

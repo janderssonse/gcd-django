@@ -134,7 +134,7 @@ class IssueCredit(GcdData):
 class Issue(GcdData):
     class Meta:
         app_label = 'gcd'
-        ordering = ['series', 'sort_code']
+        ordering = ['series_id', 'sort_code']
         unique_together = ('series', 'sort_code')
 
     # Issue identification
