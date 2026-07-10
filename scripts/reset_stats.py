@@ -24,23 +24,27 @@ def main():
     #   (a) It is a standard base issue (variant_of is NULL)
     #   (b) It is a cross-series variant (its series differs from its base issue's series)
     # Standard variants within the same series do not count, preventing inflation.
-    # 
+    #
     # This bulk aggregation MUST remain synchronized with the real-time Python
     # logic in `apps.gcd.models.issue.Issue.stat_counts()`.
-    
+
     from django.db.models import Subquery, OuterRef
     from django.db.models.functions import Coalesce
 
+    # The trailing order_by() matters: Issue's default ordering ('series',
+    # 'sort_code') orders through the FK and plants a join on gcd_series in
+    # the subquery's FROM clause, and MySQL refuses an UPDATE on gcd_series
+    # whose subquery reads gcd_series (error 1093). Clearing the ordering
+    # keeps the subquery on gcd_issue alone.
     subquery = Issue.objects.filter(
         deleted=False,
         series_id=OuterRef('pk')
     ).filter(
         Q(variant_of__isnull=True) | ~Q(series_id=F('variant_of__series_id'))
-    ).values('series_id').annotate(c=Count('id')).values('c')
+    ).values('series_id').annotate(c=Count('id')).values('c').order_by()
 
     Series.objects.update(issue_count=Coalesce(Subquery(subquery), 0))
 
 
 def run():
     main()
-
