@@ -265,6 +265,10 @@ def test_add_issue_two_emblems_same_group_counts_once(
 
     group.refresh_from_db()
     assert group.issue_count == old_group_count + 1
+    # Equal here because the added issue is a non-variant issue of a
+    # comics publication, the only kind the cached count includes.
+    # active_issues() also lists variants, so on variant-carrying groups
+    # the two sides differ by design.
     assert group.issue_count == group.active_issues().count()
 
 

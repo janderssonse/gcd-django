@@ -1,7 +1,7 @@
 from django.db.models import Q, F, Count, Case, When
 
 from apps.stats.models import CountStats
-from apps.gcd.models import Series, Issue
+from apps.gcd.models import Series, Issue, Brand, BrandGroup
 from apps.stddata.models import Language, Country
 
 
@@ -44,6 +44,28 @@ def main():
     ).values('series_id').annotate(c=Count('id')).values('c').order_by()
 
     Series.objects.update(issue_count=Coalesce(Subquery(subquery), 0))
+
+
+    # -------------------------------------------------------------------------
+    # Rebuild Brand and BrandGroup issue_count caches
+    # -------------------------------------------------------------------------
+    # The brand_emblem m2m counting bugs left these drifted. The counting
+    # rule mirrors Issue.stat_counts()'s 'issues' key, which the cache
+    # machinery maintains: distinct non-variant issues of comics
+    # publications. (active_issues() alone also lists variants; that is
+    # the display-side definition, not the cached one.)
+    for model in (Brand, BrandGroup):
+        to_update = []
+        for obj in model.objects.filter(deleted=False) \
+                        .only('id', 'issue_count').iterator():
+            actual = obj.active_issues().filter(
+                variant_of__isnull=True,
+                series__is_comics_publication=True).count()
+            if obj.issue_count != actual:
+                obj.issue_count = actual
+                to_update.append(obj)
+        model.objects.bulk_update(to_update, ['issue_count'],
+                                  batch_size=1000)
 
 
 def run():
