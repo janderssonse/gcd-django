@@ -3,135 +3,177 @@
 This is the implementation of the Grand Comics Database in Python
 using the [Django framework](https://djangoproject.com).
 
-For basic information, see the [README](README.md) file in the project's root directory.
+For basic information, see the [README](../README.md) file in the project's
+root directory.
 
-The specifics of setting up a development environment on MacOS X or Linux is
-documented in
-[Getting Started on MacOS or Linux](Getting_Started_on_MacOS_or_Linux.md)
-The specifics of setting up a development environment on Windows is
-documented in
-[Getting Started on Windows](Getting_Started_on_Windows.md).
+## Quick start with containers (recommended)
 
-After you went through the steps return to here and follow the instruction to
-use a current dump of our database in the dev-environment.
+Requires Docker (or Podman) with the compose plugin, plus
+[`just`](https://github.com/casey/just). The container environment lives
+in [gcd-django-docker](https://github.com/GrandComicsDatabase/gcd-django-docker),
+checked out next to this repository:
 
-# The GCD project and apps
+```
+git clone https://github.com/GrandComicsDatabase/gcd-django-docker ../gcd-django-docker
+just fresh
+```
 
-## 1. `settings.py` and `settings_local.py`
+Then open http://127.0.0.1:8000/. That one command brings up the database,
+loads the schema, loads all fixtures (including the development user
+accounts from `apps/indexer/fixtures/users.yaml` — an admin, an approver
+and an indexer; usernames and passwords are in that file) plus a little
+sample data, and starts the server.
 
-In the top level directory of your repository clone, open up `settings.py` and
-take a look at it.  You should create a `settings_local.py` file in the same
-directory, and override any values from `settings.py` that need overriding in
-that `settings_local.py`.  Do not modify `settings.py` itself, unless you need
-to push a change out to all other development and production environments.
+`just fresh` migrates an empty database and loads everything, which takes
+a few minutes. `just seed` does the same without starting the server.
 
-Our `.gitignore` settings will prevent git from noticing `settings_local.py`.
+Run the test suite the same way:
 
-The `settings.py` file has numerous comments indicating what needs to be overridden.
-The most obvious are the `DATABASES` and `CACHES` group of settings.
+```
+just test
+```
 
-By default, we assume that the database is called `gcdonline`. It can be
-accessed by a user called `gcdonline` with no password. If you set your
-database up differently, look for settings that start with `DATABASE`. Override
-them appropriately.
+A Django shell and a database shell work the same way:
 
-A good starting point for a `settings_local.py` can be found in our [docker setup](https://github.com/GrandComicsDatabase/gcd-django-docker).
+```
+just shell
+just dbshell
+```
 
-## 2. Creating your test database
+Elasticsearch (only needed for the search pages) is optional:
 
-Create your database and set up whatever permissions you want.  Django
-will create the tables for you, but you need to create the database first.
+```
+just search
+```
 
-E.g. from MySQL command line client do (this is without a password):
+(the web server needs `USE_ELASTICSEARCH=1` in its environment to use it).
+
+### Without `just`
+
+`just` is a thin wrapper over the compose commands; run them directly if
+you prefer. The compose project lives in the sibling checkout and mounts
+this one as the code, so each command names both. The full-replay path
+(equivalent to `just fresh-full`) is:
+
+```
+export GCD_CODE=$PWD
+docker compose --project-directory ../gcd-django-docker up -d --wait db memcached
+docker compose --project-directory ../gcd-django-docker run --rm -w /code/gcd-django web python manage.py seed_dev
+docker compose --project-directory ../gcd-django-docker up web
+```
+
+`seed_dev` runs the migrations and loads all fixtures; `--no-migrate` loads
+fixtures only. See the `justfile` for the exact commands each recipe runs.
+
+The web container is configured by the `settings_local.py` that
+gcd-django-docker mounts into it; there is nothing to set up in this
+repository. For running against a locally installed MySQL instead, copy
+`settings_local.example.py` to `settings_local.py` and adjust. Note that a
+`settings_local.py` on your host is picked up inside the container too,
+since the source tree is mounted -- keep it deleted or container-compatible
+if you mix both workflows.
+
+## Manual setup
+
+If you prefer a virtualenv on your host, see
+[Getting Started on MacOS or Linux](Getting_Started_on_MacOS_or_Linux.md) or
+[Getting Started on Windows](Getting_Started_on_Windows.md) for the system
+packages, then follow the steps below. You need a Python version supported
+by the pinned Django release (currently Django 5.2: Python 3.10 to 3.13).
+
+### 1. `settings.py` and `settings_local.py`
+
+Do not modify `settings.py` itself; create a `settings_local.py` next to it
+and override there. Start from the committed example:
+
+```
+cp settings_local.example.py settings_local.py
+```
+
+The example enables `DEBUG`, allows `localhost` in `ALLOWED_HOSTS`
+(required -- the default list only contains comics.org hosts, so without
+this override the dev server answers every request with a `DisallowedHost`
+error), points the database at the compose MySQL, and uses a local-memory
+cache so no memcached is needed.
+
+Alternatively, most settings can be overridden through `GCD_*` environment
+variables, see the top of `settings.py`. With `DEBUG` off, a
+`GCD_SECRET_KEY` (or `SECRET_KEY` override) is required.
+
+### 2. Creating your test database
+
+The database must be MySQL 8.x. Create the schema and user yourself,
+Django creates the tables. From the MySQL command line client:
+
 ```
 create schema gcdonline;
 create user gcdonline;
 grant all on gcdonline.* to gcdonline;
+grant all on `test\_%`.* to gcdonline;
 ```
 
-## 3. Creating the database schema
+(The second grant lets pytest create its test database.)
 
-To create the various tables run the migrations with
-
-```
-python manage.py migrate
-```
-
-This will create the tables, populate them with some of the required initial data, 
-and update your schema if any updates beyond the initial state are required. 
-
-If you get system check errors for `models.E025`, add `models.E025` to the
-`SILENCED_SYSTEM_CHECKS` array in your `settings_local.py` to suppress the check:
-```
-SILENCED_SYSTEM_CHECKS = ['models.E025']
-```
-
-## 4. Populating fixture data
-
-Currently it is needed to manually perform `python manage.py loaddata` on all
-files in the fixtures folders of the django apps,
-e.g. `apps/indexer/fixtures/`, `apps/gcd/fixtures`, etc.
+### 3. Schema and fixture data
 
 ```
-python manage.py loaddata users
+python manage.py seed_dev
 ```
 
-this will add an admin user, an approver, and a basic indexer. The usernames,
-email addresses and passwords can be seen in the fixture file, which is
-located at `apps/indexer/fixtures/users.yaml`.  Load all the relevant fixture
-data for the apps you expect to be using.
+runs all migrations and loads every fixture in one go. To only load
+fixtures on an already-migrated database, use `--no-migrate`.
 
-## 5. Populating your database with the GCD data
+If you get system check errors for `models.E025`, add
+`SILENCED_SYSTEM_CHECKS = ['models.E025']` to your `settings_local.py`
+(the example file already contains it).
 
-If you want data in your database, and know that the current development master
-matches the production schema, you can load a data dump from
+### 4. Populating your database with the GCD data
 
-http://www.comics.org/download/
+If you want real data, and know that the current development branch
+matches the production schema, log in to comics.org and download a
+dump from http://www.comics.org/download/ . With the compose setup:
+
+```
+docker compose exec -T db mysql -ugcdonline -pgcdonline gcdonline < dump.sql
+docker compose run --rm web python manage.py migrate
+docker compose run --rm web python manage.py setup_initial_changesets
+docker compose run --rm web python manage.py shell -c "from scripts.reset_stats import main; main()"
+```
+
+(or `mysql -ugcdonline gcdonline < dump.sql` for a local MySQL).
+`just dump-import dump.sql` runs the same steps.
+
+The dump does not contain the change history, and without it existing
+objects cannot be edited through the OI. `setup_initial_changesets`
+creates an auto-generated approved changeset per object to make them
+editable; by default it covers the first 500 objects per type, see
+`--limit`. The last step rebuilds the cached statistics; OI approvals
+and the displayed object counts rely on them.
 
 Contact the GCD tech team to find out if the development and production
-schemas currently match, and what to do if they do not.
+schemas currently match. Cover images and other uploads are not
+distributed.
 
-With the default user and database-name you need to do
+### 5. Search backend (optional)
+
+Haystack search needs Elasticsearch **7.x** (the pinned client does not
+work with ES 8 or newer); 7.17 is the version to use. Run it locally or
+via the compose `search` profile, then populate the index:
+
 ```
-mysql -ugcdonline gcdonline < dump.sql
+python manage.py rebuild_index
 ```
-(You might want to do `-v` to see something is happening)
 
-Note that we do not distribute the images for covers and other user contributed
-uploads of scans.
+### 6. Launching your test web server
 
-## 6. Run backend search facility
-
-For haystack search to work one needs to run elasticsearch search backend.
-The latest version can be downloaded here: http://www.elasticsearch.org/download/
-
-Either use the provided deb/rpm or unpack it and run `bin/elasticsearch -f` (on Linux and Mac) or `bin\elasticsearch.bat` (on Windows).
-
-If you get an error like "Unsupported major.minor version 51.0" and a stack
-trace, it means that you need to update your java runtime.
-
-After that you can run `python manage.py rebuild_index` in `gcd-django` directory to populate your search indexes with data.
-
-## 7. Launching your test web server
-
-At this time you should be able to test your installation and data import using a
-read-only mode, or try out editing with read-write mode.
-
-Read-write mode is the default.
-For read-only mode, set `READ_ONLY = True` and `NO_OI = True` in `settings_local.py`
-
-Once your settings are chosen, run
+Read-write mode is the default. For read-only mode, set
+`READ_ONLY = True` and `NO_OI = True` in `settings_local.py`. Then:
 
 ```
 python manage.py runserver
 ```
 
 and take a look at http://127.0.0.1:8000/
-
-If you don't get any page at all, check http://www.djangoproject.com/ if it
-looks like Django isn't configured correctly, or
-http://dev.comics.org/ and/or http://groups.google.com/group/gcd-tech/
-if it appears to be a code problem.
 
 # Proposing your first change for review
 

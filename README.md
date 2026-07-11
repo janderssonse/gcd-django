@@ -19,11 +19,24 @@ http://groups.google.com/group/gcd-tech/
 
 ## Setting up a Development Environment
 
-We recommend that you use [our Docker-based development environment](https://github.com/GrandComicsDatabase/gcd-django-docker).
+Development runs in the gcd-django-docker containers, checked out as a sibling directory —
+nothing is installed on your host. From a fresh clone:
 
-You can find manual instructions for various platforms using virtual environments for python in the docs directory
-[GCD Docs](https://github.com/GrandComicsDatabase/gcd-django/tree/beta/docs) but they aren't
-necessarily up to date.  As of September 2023 they should work.
+```
+docker compose up -d db
+docker compose run --rm web python manage.py seed_dev
+docker compose up web
+```
+
+Then open http://127.0.0.1:8000/ (`seed_dev` also loads development
+logins). See **[docs/Getting_Started.md](docs/Getting_Started.md)** — the
+single source of truth for setup — for the one-command workflow, faster
+snapshot-based onboarding, running the tests, and the optional search index.
+
+Manual, non-container setups (a per-platform virtualenv) are documented in
+the [docs directory](docs/). An
+[external Docker environment](https://github.com/GrandComicsDatabase/gcd-django-docker)
+also exists, but the in-repo `docker compose` setup above supersedes it.
 
 ## Workflow
 
