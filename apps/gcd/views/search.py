@@ -2245,6 +2245,10 @@ def search_stories(data, op):
                   credits__deleted=False,
                   credits__credit_type__id=CREDIT_TYPES[field])
                   .values_list('id', flat=True))
+                # if linked credits only is selected and if there is no
+                # story matching, the search should return no match.
+                if not stories and data['credit_is_linked'] is None:
+                    stories = [-1]  # force no match
                 if (stories):
                     linked_credits_q_objs.append(
                       (Q(**{'%sid__in' % (prefix): stories}))
@@ -2264,6 +2268,10 @@ def search_stories(data, op):
           credits__deleted=False,
           credits__credit_type__id=CREDIT_TYPES['editing'])
           .values_list('id', flat=True))
+        # if linked credits only is selected and if there is no story
+        # matching, the search should return no match.
+        if not stories and data['credit_is_linked'] is None:
+            stories = [-1]  # force no match
         if (stories):
             linked_credits_q_objs.append(
                 (Q(**{'%sid__in' % (prefix): stories}))
