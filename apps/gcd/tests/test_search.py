@@ -81,3 +81,34 @@ def test_credit_search_matches_only_its_own_credit_type(credit,
     matched = advanced_search(**{SEARCH_FIELD[credit]: CREATOR})
 
     assert matched == {credited_stories[credit].id}
+
+
+def test_credit_search_ignores_deleted_credits(credited_stories):
+    StoryCredit.objects.filter(
+        story=credited_stories['inks']).update(deleted=True)
+
+    assert advanced_search(inks=CREATOR) == set()
+
+
+def test_semicolon_separated_creators_must_all_be_credited(credited_stories):
+    # 'A; B' means stories credited to both A and B, not either of them.
+    solo = credited_stories['script']
+    shared = Story.objects.create(
+        issue=solo.issue, type=solo.type, sequence_number=1)
+    script_type = CreditType.objects.get(id=CREDIT_TYPES['script'])
+    for name in (CREATOR, 'Other Person'):
+        creator = Creator.objects.create(
+            gcd_official_name=name, sort_name=name)
+        StoryCredit.objects.create(
+            creator=CreatorNameDetail.objects.create(
+                name=name, creator=creator,
+                in_script=Script.objects.get(id=Script.LATIN_PK)),
+            credit_type=script_type, story=shared)
+
+    matched = advanced_search(script='%s; Other Person' % CREATOR)
+
+    assert matched == {shared.id}
+
+
+def test_unmatched_creator_returns_no_stories(credited_stories):
+    assert advanced_search(script='Nobody At All') == set()
